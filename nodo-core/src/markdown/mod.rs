@@ -288,14 +288,15 @@ fn write_blocks<W: std::io::Write>(
     prefix: &str,
     w: &mut W,
 ) -> Result<(), std::io::Error> {
-    let mut prev = None;
     for (i, b) in bs.iter().enumerate() {
+        debug!("write_blocks: {:?}", b);
+
         match b {
             Block::Rule => write!(w, "{}---", prefix)?,
-            Block::Paragraph(inlines) => write_inlines(inlines, w)?,
+            Block::Paragraph(inlines) => write_inlines(inlines, prefix, w)?,
             Block::Heading(level, inlines) => {
                 write!(w, "{}{} ", prefix, "#".repeat(*level as usize))?;
-                write_inlines(inlines, w)?
+                write_inlines(inlines, prefix, w)?
             }
             Block::Code(lang, content) => write!(w, "{}```{}\n{}```", prefix, lang, content)?,
             Block::Quote(blocks) => {
@@ -306,23 +307,8 @@ fn write_blocks<W: std::io::Write>(
         }
 
         if i != bs.len() - 1 {
-            let mut skip = false;
-            if prefix != "" {
-                match prev {
-                    Some(&Block::Paragraph(_)) => match b {
-                        Block::List(_, _) => skip = true,
-                        _ => (),
-                    },
-                    _ => (),
-                }
-            }
-
-            if !skip {
-                write!(w, "\n\n")?
-            }
+            write!(w, "\n\n{}", prefix)?
         }
-
-        prev = Some(b)
     }
     Ok(())
 }
@@ -334,10 +320,13 @@ fn write_list_items<W: std::io::Write>(
     w: &mut W,
 ) -> Result<(), std::io::Error> {
     for (i, item) in is.iter().enumerate() {
+        debug!("write_list_items: {:?}", item);
+
         match list_type {
-            ListType::Numbered => write!(w, "{}{}. ", prefix, i + 1)?,
-            ListType::Plain => write!(w, "{}- ", prefix)?,
+            ListType::Numbered => write!(w, "{}{}. ", if i == 0 { "" } else { prefix }, i + 1)?,
+            ListType::Plain => write!(w, "{}- ", if i == 0 { "" } else { prefix })?,
         }
+
         if let Some(b) = item.0 {
             if b {
                 write!(w, "[x] ")?
@@ -356,31 +345,43 @@ fn write_list_items<W: std::io::Write>(
     Ok(())
 }
 
-fn write_inlines<W: std::io::Write>(is: &[Inline], w: &mut W) -> Result<(), std::io::Error> {
-    for i in is.iter() {
-        match i {
+fn write_inlines<W: std::io::Write>(
+    is: &[Inline],
+    prefix: &str,
+    w: &mut W,
+) -> Result<(), std::io::Error> {
+    for (i, item) in is.iter().enumerate() {
+        debug!("write_inlines: {:?}", i);
+
+        match item {
             Inline::Plain(s) => write!(w, "{}", s)?,
             Inline::Emph(i) => {
                 write!(w, "*")?;
-                write_inlines(i, w)?;
+                write_inlines(i, "", w)?;
                 write!(w, "*")?
             }
             Inline::Strong(i) => {
                 write!(w, "**")?;
-                write_inlines(i, w)?;
+                write_inlines(i, "", w)?;
                 write!(w, "**")?
             }
             Inline::Code(s) => write!(w, "`{}`", s)?,
             Inline::Strikethrough(i) => {
                 write!(w, "~~")?;
-                write_inlines(i, w)?;
+                write_inlines(i, "", w)?;
                 write!(w, "~~")?
             }
             Inline::Link(n, l) => write!(w, "[{}]({})", n, l)?,
             Inline::Image(n, l) => write!(w, "![{}]({})", n, l)?,
             Inline::Html(s) => write!(w, "{}", s)?,
-            Inline::SoftBreak => writeln!(w)?,
-            Inline::HardBreak => write!(w, "\n\n")?,
+            Inline::SoftBreak => {
+                writeln!(w)?;
+                write!(w, "{}", prefix)?
+            }
+            Inline::HardBreak => {
+                write!(w, "\n\n")?;
+                write!(w, "{}", prefix)?
+            }
         }
     }
     Ok(())
@@ -408,6 +409,9 @@ a + b
 
     - nested list item
 
+a split
+paragraph
+
 1. a numbered list
 
     1. a sub numbered list
@@ -417,7 +421,11 @@ a + b
 - [ ] an incomplete task list
 - [x] an complete task list
 
+    paragraph
+
     - [ ] a sub task
+
+        another paragraph
 
 ```rust
 some code {
