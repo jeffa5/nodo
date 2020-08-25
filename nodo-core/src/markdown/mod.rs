@@ -281,25 +281,44 @@ impl Read for Markdown {
     }
 }
 
-fn write_blocks<W: std::io::Write>(bs: &[Block], w: &mut W) -> Result<(), std::io::Error> {
+fn write_blocks<W: std::io::Write>(
+    bs: &[Block],
+    prefix: &str,
+    w: &mut W,
+) -> Result<(), std::io::Error> {
+    let mut prev = None;
     for (i, b) in bs.iter().enumerate() {
         match b {
-            Block::Rule => write!(w, "---")?,
+            Block::Rule => write!(w, "{}---", prefix)?,
             Block::Paragraph(inlines) => write_inlines(inlines, w)?,
             Block::Heading(level, inlines) => {
-                write!(w, "{} ", "#".repeat(*level as usize))?;
+                write!(w, "{}{} ", prefix, "#".repeat(*level as usize))?;
                 write_inlines(inlines, w)?
             }
-            Block::Code(lang, content) => write!(w, "```{}\n{}```", lang, content)?,
+            Block::Code(lang, content) => write!(w, "{}```{}\n{}```", prefix, lang, content)?,
             Block::Quote(blocks) => {
-                write!(w, "> ")?;
-                write_blocks(blocks, w)?
+                write!(w, "{}> ", prefix)?;
+                write_blocks(blocks, prefix, w)?
             }
-            Block::List(ty, items) => write_list_items(*ty, items, w)?,
+            Block::List(ty, items) => write_list_items(*ty, items, prefix, w)?,
         }
+
         if i != bs.len() - 1 {
-            write!(w, "\n\n")?
+            let mut skip = false;
+            if prefix != "" {
+                if let Some(&Block::Paragraph(_)) = prev {
+                    if let Block::List(_, _) = b {
+                        skip = true
+                    }
+                }
+            }
+
+            if !skip {
+                write!(w, "\n\n")?
+            }
         }
+
+        prev = Some(b)
     }
     Ok(())
 }
@@ -307,12 +326,13 @@ fn write_blocks<W: std::io::Write>(bs: &[Block], w: &mut W) -> Result<(), std::i
 fn write_list_items<W: std::io::Write>(
     list_type: ListType,
     is: &[ListItem],
+    prefix: &str,
     w: &mut W,
 ) -> Result<(), std::io::Error> {
     for (i, item) in is.iter().enumerate() {
         match list_type {
-            ListType::Numbered => write!(w, "{}. ", i + 1)?,
-            ListType::Plain => write!(w, "- ")?,
+            ListType::Numbered => write!(w, "{}{}. ", prefix, i + 1)?,
+            ListType::Plain => write!(w, "{}- ", prefix)?,
         }
         if let Some(b) = item.0 {
             if b {
@@ -322,10 +342,10 @@ fn write_list_items<W: std::io::Write>(
             }
         }
 
-        write_blocks(&item.1, w)?;
+        write_blocks(&item.1, &format!("{}  ", prefix), w)?;
 
         if i != is.len() - 1 {
-            write!(w, "\n")?
+            writeln!(w)?
         }
     }
 
@@ -355,7 +375,7 @@ fn write_inlines<W: std::io::Write>(is: &[Inline], w: &mut W) -> Result<(), std:
             Inline::Link(n, l) => write!(w, "[{}]({})", n, l)?,
             Inline::Image(n, l) => write!(w, "![{}]({})", n, l)?,
             Inline::Html(s) => write!(w, "{}", s)?,
-            Inline::SoftBreak => write!(w, "\n")?,
+            Inline::SoftBreak => writeln!(w)?,
             Inline::HardBreak => write!(w, "\n\n")?,
         }
     }
@@ -364,7 +384,7 @@ fn write_inlines<W: std::io::Write>(is: &[Inline], w: &mut W) -> Result<(), std:
 
 impl Write for Markdown {
     fn write<W: std::io::Write>(n: &Nodo, w: &mut W) -> Result<(), std::io::Error> {
-        write_blocks(&n.blocks, w)
+        write_blocks(&n.blocks, "", w)
     }
 }
 
@@ -381,6 +401,7 @@ a + b
 
 - a list
 - more list
+
   - nested list item
 
 1. a numbered list
