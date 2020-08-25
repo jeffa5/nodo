@@ -267,8 +267,8 @@ fn parse_text(p: &mut Peekable<Parser>) -> String {
     };
 
     match p.next() {
-        None => return ret,
-        Some(Event::End(_)) => return ret,
+        None => ret,
+        Some(Event::End(_)) => ret,
         Some(e) => panic!("{:?}", e),
     }
 }
