@@ -1,4 +1,4 @@
-use crate::{Block, Inline, ListItem, ListType, Nodo, Read, Write};
+use crate::{Block, Inline, ListItem, ListType, Nodo, Parse, Render};
 use pulldown_cmark::{Event, Options, Parser, Tag};
 use std::iter::Peekable;
 
@@ -271,8 +271,8 @@ fn read_text(p: &mut Peekable<Parser>) -> String {
     }
 }
 
-impl Read for Markdown {
-    fn read(s: &str) -> Nodo {
+impl Parse for Markdown {
+    fn parse(s: &str) -> Nodo {
         let mut opts = Options::empty();
         opts.insert(Options::ENABLE_TASKLISTS);
         opts.insert(Options::ENABLE_STRIKETHROUGH);
@@ -382,8 +382,8 @@ fn write_inlines<W: std::io::Write>(is: &[Inline], w: &mut W) -> Result<(), std:
     Ok(())
 }
 
-impl Write for Markdown {
-    fn write<W: std::io::Write>(n: &Nodo, w: &mut W) -> Result<(), std::io::Error> {
+impl Render for Markdown {
+    fn render<W: std::io::Write>(n: &Nodo, w: &mut W) -> Result<(), std::io::Error> {
         write_blocks(&n.blocks, "", w)
     }
 }
@@ -416,10 +416,10 @@ some code {
     echo
 }
 ```";
-        let nodo = Markdown::read(md);
+        let nodo = Markdown::parse(md);
 
         let mut out = Vec::new();
-        Markdown::write(&nodo, &mut out).unwrap();
+        Markdown::render(&nodo, &mut out).unwrap();
 
         assert_eq!(md, String::from_utf8(out).unwrap(), "{:?}", nodo)
     }

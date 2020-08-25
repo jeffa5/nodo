@@ -2,12 +2,12 @@ mod markdown;
 
 pub use markdown::Markdown;
 
-pub trait Read {
-    fn read(s: &str) -> Nodo;
+pub trait Parse {
+    fn parse(s: &str) -> Nodo;
 }
 
-pub trait Write {
-    fn write<W: std::io::Write>(n: &Nodo, w: &mut W) -> Result<(), std::io::Error>;
+pub trait Render {
+    fn render<W: std::io::Write>(n: &Nodo, w: &mut W) -> Result<(), std::io::Error>;
 }
 
 #[derive(Debug, Eq, PartialEq)]
