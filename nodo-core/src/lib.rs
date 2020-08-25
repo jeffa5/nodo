@@ -7,26 +7,25 @@ pub trait Read {
 }
 
 pub trait Write {
-    fn write<W: std::fmt::Write>(n: &Nodo, w: &mut W) -> Result<(), std::fmt::Error>;
+    fn write<W: std::io::Write>(n: &Nodo, w: &mut W) -> Result<(), std::io::Error>;
 }
 
 #[derive(Debug, Eq, PartialEq)]
 enum Inline {
     Plain(String),
-    Emph(String),
-    Strong(String),
+    Emph(Vec<Inline>),
+    Strong(Vec<Inline>),
     Code(String),
-    Strikethrough(String),
+    Strikethrough(Vec<Inline>),
     Link(String, String),
     Image(String, String),
     Html(String),
     SoftBreak,
     HardBreak,
-    ListItem(Vec<Inline>),
 }
 
 #[derive(Debug, Eq, PartialEq)]
-struct ListItem(Option<bool>, Vec<Inline>);
+struct ListItem(Option<bool>, Vec<Block>);
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
 enum ListType {
@@ -36,12 +35,12 @@ enum ListType {
 
 #[derive(Debug, Eq, PartialEq)]
 enum Block {
-    Rule,
     Paragraph(Vec<Inline>),
     Heading(u32, Vec<Inline>),
     Code(String, String),
-    Quote(String),
+    Quote(Vec<Block>),
     List(ListType, Vec<ListItem>),
+    Rule,
 }
 
 #[derive(Default, Debug, Eq, PartialEq)]
