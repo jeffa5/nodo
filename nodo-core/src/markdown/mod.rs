@@ -42,14 +42,17 @@ fn parse_blocks(p: &mut Peekable<Parser>) -> Vec<Block> {
                         blocks.push(Block::List(ListType::Plain, parse_list_items(p)))
                     }
                 }
-                Tag::Item => unimplemented!(),
-                Tag::FootnoteDefinition(_) => unimplemented!(),
-                Tag::TableHead | Tag::TableRow | Tag::TableCell => unimplemented!(),
-                Tag::Table(_) => unimplemented!(),
-                Tag::Emphasis => unimplemented!(),
-                Tag::Strikethrough | Tag::Strong | Tag::Link(_, _, _) | Tag::Image(_, _, _) => {
-                    unimplemented!()
-                }
+                Tag::Item
+                | Tag::FootnoteDefinition(_)
+                | Tag::TableHead
+                | Tag::TableRow
+                | Tag::TableCell
+                | Tag::Table(_)
+                | Tag::Emphasis
+                | Tag::Strikethrough
+                | Tag::Strong
+                | Tag::Link(_, _, _)
+                | Tag::Image(_, _, _) => unimplemented!(),
             },
             Event::End(_) => break,
             Event::Text(s) => {
@@ -62,9 +65,9 @@ fn parse_blocks(p: &mut Peekable<Parser>) -> Vec<Block> {
             | Event::Html(_)
             | Event::FootnoteReference(_)
             | Event::HardBreak
-            | Event::SoftBreak => unimplemented!(),
+            | Event::SoftBreak
+            | Event::TaskListMarker(_) => unimplemented!(),
             Event::Rule => blocks.push(Block::Rule),
-            Event::TaskListMarker(_) => unimplemented!(),
         }
     }
 
