@@ -306,10 +306,12 @@ fn write_blocks<W: std::io::Write>(
         if i != bs.len() - 1 {
             let mut skip = false;
             if prefix != "" {
-                if let Some(&Block::Paragraph(_)) = prev {
-                    if let Block::List(_, _) = b {
-                        skip = true
-                    }
+                match prev {
+                    Some(&Block::Paragraph(_)) => match b {
+                        Block::List(_, _) => skip = true,
+                        _ => (),
+                    },
+                    _ => (),
                 }
             }
 
