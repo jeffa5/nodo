@@ -12,7 +12,7 @@ pub struct Markdown;
 
 const INDENT: &str = "    ";
 
-fn read_blocks(p: &mut Peekable<Parser>) -> Vec<Block> {
+fn parse_blocks(p: &mut Peekable<Parser>) -> Vec<Block> {
     let mut blocks = Vec::new();
 
     loop {
@@ -21,25 +21,25 @@ fn read_blocks(p: &mut Peekable<Parser>) -> Vec<Block> {
             Some(e) => e,
         };
 
-        debug!("read_blocks: {:?}", e);
+        debug!("parse_blocks: {:?}", e);
 
         match e {
             Event::Start(tag) => match tag {
-                Tag::Heading(level) => blocks.push(Block::Heading(level, read_inlines(p))),
-                Tag::Paragraph => blocks.push(Block::Paragraph(read_inlines(p))),
-                Tag::BlockQuote => blocks.push(Block::Quote(read_blocks(p))),
+                Tag::Heading(level) => blocks.push(Block::Heading(level, parse_inlines(p))),
+                Tag::Paragraph => blocks.push(Block::Paragraph(parse_inlines(p))),
+                Tag::BlockQuote => blocks.push(Block::Quote(parse_blocks(p))),
                 Tag::CodeBlock(kind) => {
                     let lang = match kind {
                         pulldown_cmark::CodeBlockKind::Indented => String::new(),
                         pulldown_cmark::CodeBlockKind::Fenced(lang) => lang.to_string(),
                     };
-                    blocks.push(Block::Code(lang, read_text(p)))
+                    blocks.push(Block::Code(lang, parse_text(p)))
                 }
                 Tag::List(kind) => {
                     if kind.is_some() {
-                        blocks.push(Block::List(ListType::Numbered, read_list_items(p)))
+                        blocks.push(Block::List(ListType::Numbered, parse_list_items(p)))
                     } else {
-                        blocks.push(Block::List(ListType::Plain, read_list_items(p)))
+                        blocks.push(Block::List(ListType::Plain, parse_list_items(p)))
                     }
                 }
                 Tag::Item => unimplemented!(),
@@ -54,7 +54,7 @@ fn read_blocks(p: &mut Peekable<Parser>) -> Vec<Block> {
             Event::End(_) => break,
             Event::Text(s) => {
                 let mut text = vec![Inline::Plain(s.to_string())];
-                let mut inlines = read_tight_paragraph(p);
+                let mut inlines = parse_tight_paragraph(p);
                 text.append(&mut inlines);
                 blocks.push(Block::Paragraph(text))
             }
@@ -71,7 +71,7 @@ fn read_blocks(p: &mut Peekable<Parser>) -> Vec<Block> {
     blocks
 }
 
-fn read_list_items(p: &mut Peekable<Parser>) -> Vec<ListItem> {
+fn parse_list_items(p: &mut Peekable<Parser>) -> Vec<ListItem> {
     let mut items = Vec::new();
 
     loop {
@@ -80,7 +80,7 @@ fn read_list_items(p: &mut Peekable<Parser>) -> Vec<ListItem> {
             Some(e) => e,
         };
 
-        debug!("read_list_items: {:?}", e);
+        debug!("parse_list_items: {:?}", e);
 
         match e {
             Event::Start(tag) => match tag {
@@ -104,26 +104,26 @@ fn read_list_items(p: &mut Peekable<Parser>) -> Vec<ListItem> {
                     Some(Event::TaskListMarker(b)) => {
                         let b = *b;
                         p.next().unwrap();
-                        items.push(ListItem(Some(b), read_blocks(p)))
+                        items.push(ListItem(Some(b), parse_blocks(p)))
                     }
-                    _ => items.push(ListItem(None, read_blocks(p))),
+                    _ => items.push(ListItem(None, parse_blocks(p))),
                 },
             },
             Event::End(_) => break,
             Event::Text(_) | Event::Code(_) | Event::Html(_) => {
-                items.push(ListItem(None, read_blocks(p)))
+                items.push(ListItem(None, parse_blocks(p)))
             }
             Event::FootnoteReference(_) => todo!(),
-            Event::SoftBreak | Event::HardBreak => items.push(ListItem(None, read_blocks(p))),
+            Event::SoftBreak | Event::HardBreak => items.push(ListItem(None, parse_blocks(p))),
             Event::Rule => continue,
-            Event::TaskListMarker(b) => items.push(ListItem(Some(b), read_blocks(p))),
+            Event::TaskListMarker(b) => items.push(ListItem(Some(b), parse_blocks(p))),
         }
     }
 
     items
 }
 
-fn read_tight_paragraph(p: &mut Peekable<Parser>) -> Vec<Inline> {
+fn parse_tight_paragraph(p: &mut Peekable<Parser>) -> Vec<Inline> {
     let mut inlines = Vec::new();
 
     loop {
@@ -132,7 +132,7 @@ fn read_tight_paragraph(p: &mut Peekable<Parser>) -> Vec<Inline> {
             Some(e) => e,
         };
 
-        debug!("read_tight_paragraph: {:?}", e);
+        debug!("parse_tight_paragraph: {:?}", e);
 
         match e {
             Event::Start(tag) => match tag {
@@ -149,15 +149,15 @@ fn read_tight_paragraph(p: &mut Peekable<Parser>) -> Vec<Inline> {
                 | Tag::Item => break,
                 Tag::Emphasis => {
                     p.next().unwrap();
-                    inlines.push(Inline::Emph(read_tight_paragraph(p)))
+                    inlines.push(Inline::Emph(parse_tight_paragraph(p)))
                 }
                 Tag::Strong => {
                     p.next().unwrap();
-                    inlines.push(Inline::Strong(read_tight_paragraph(p)))
+                    inlines.push(Inline::Strong(parse_tight_paragraph(p)))
                 }
                 Tag::Strikethrough => {
                     p.next().unwrap();
-                    inlines.push(Inline::Strikethrough(read_tight_paragraph(p)))
+                    inlines.push(Inline::Strikethrough(parse_tight_paragraph(p)))
                 }
                 Tag::Link(_type, s, l) => {
                     let (s, l) = (s.to_string(), l.to_string());
@@ -206,7 +206,7 @@ fn read_tight_paragraph(p: &mut Peekable<Parser>) -> Vec<Inline> {
     inlines
 }
 
-fn read_inlines(p: &mut Peekable<Parser>) -> Vec<Inline> {
+fn parse_inlines(p: &mut Peekable<Parser>) -> Vec<Inline> {
     let mut inlines = Vec::new();
 
     loop {
@@ -215,7 +215,7 @@ fn read_inlines(p: &mut Peekable<Parser>) -> Vec<Inline> {
             Some(e) => e,
         };
 
-        debug!("read_inlines: {:?}", e);
+        debug!("parse_inlines: {:?}", e);
 
         match e {
             Event::Start(tag) => match tag {
@@ -230,9 +230,9 @@ fn read_inlines(p: &mut Peekable<Parser>) -> Vec<Inline> {
                 | Tag::TableRow
                 | Tag::TableCell
                 | Tag::Item => unimplemented!(),
-                Tag::Emphasis => inlines.push(Inline::Emph(read_inlines(p))),
-                Tag::Strong => inlines.push(Inline::Strong(read_inlines(p))),
-                Tag::Strikethrough => inlines.push(Inline::Strikethrough(read_inlines(p))),
+                Tag::Emphasis => inlines.push(Inline::Emph(parse_inlines(p))),
+                Tag::Strong => inlines.push(Inline::Strong(parse_inlines(p))),
+                Tag::Strikethrough => inlines.push(Inline::Strikethrough(parse_inlines(p))),
                 Tag::Link(_type, s, l) => inlines.push(Inline::Link(s.to_string(), l.to_string())),
                 Tag::Image(_type, s, l) => {
                     inlines.push(Inline::Image(s.to_string(), l.to_string()))
@@ -253,13 +253,13 @@ fn read_inlines(p: &mut Peekable<Parser>) -> Vec<Inline> {
     inlines
 }
 
-fn read_text(p: &mut Peekable<Parser>) -> String {
+fn parse_text(p: &mut Peekable<Parser>) -> String {
     let e = match p.next() {
         None => return "".to_string(),
         Some(e) => e,
     };
 
-    debug!("read_text: {:?}", e);
+    debug!("parse_text: {:?}", e);
 
     let ret = match e {
         Event::Text(s) => s.to_string(),
@@ -278,32 +278,32 @@ impl Parse for Markdown {
         let mut opts = Options::empty();
         opts.insert(Options::ENABLE_TASKLISTS);
         opts.insert(Options::ENABLE_STRIKETHROUGH);
-        let blocks = read_blocks(&mut (Parser::new_ext(s, opts)).peekable());
+        let blocks = parse_blocks(&mut (Parser::new_ext(s, opts)).peekable());
         Nodo { blocks }
     }
 }
 
-fn write_blocks<W: std::io::Write>(
+fn render_blocks<W: std::io::Write>(
     bs: &[Block],
     prefix: &str,
     w: &mut W,
 ) -> Result<(), std::io::Error> {
     for (i, b) in bs.iter().enumerate() {
-        debug!("write_blocks: {:?}", b);
+        debug!("render_blocks: {:?}", b);
 
         match b {
             Block::Rule => write!(w, "{}---", prefix)?,
-            Block::Paragraph(inlines) => write_inlines(inlines, prefix, w)?,
+            Block::Paragraph(inlines) => render_inlines(inlines, prefix, w)?,
             Block::Heading(level, inlines) => {
                 write!(w, "{}{} ", prefix, "#".repeat(*level as usize))?;
-                write_inlines(inlines, prefix, w)?
+                render_inlines(inlines, prefix, w)?
             }
             Block::Code(lang, content) => write!(w, "{}```{}\n{}```", prefix, lang, content)?,
             Block::Quote(blocks) => {
                 write!(w, "{}> ", prefix)?;
-                write_blocks(blocks, prefix, w)?
+                render_blocks(blocks, prefix, w)?
             }
-            Block::List(ty, items) => write_list_items(*ty, items, prefix, w)?,
+            Block::List(ty, items) => render_list_items(*ty, items, prefix, w)?,
         }
 
         if i != bs.len() - 1 {
@@ -313,14 +313,14 @@ fn write_blocks<W: std::io::Write>(
     Ok(())
 }
 
-fn write_list_items<W: std::io::Write>(
+fn render_list_items<W: std::io::Write>(
     list_type: ListType,
     is: &[ListItem],
     prefix: &str,
     w: &mut W,
 ) -> Result<(), std::io::Error> {
     for (i, item) in is.iter().enumerate() {
-        debug!("write_list_items: {:?}", item);
+        debug!("render_list_items: {:?}", item);
 
         match list_type {
             ListType::Numbered => write!(w, "{}{}. ", if i == 0 { "" } else { prefix }, i + 1)?,
@@ -335,7 +335,7 @@ fn write_list_items<W: std::io::Write>(
             }
         }
 
-        write_blocks(&item.1, &format!("{}{}", prefix, INDENT), w)?;
+        render_blocks(&item.1, &format!("{}{}", prefix, INDENT), w)?;
 
         if i != is.len() - 1 {
             writeln!(w)?
@@ -345,30 +345,30 @@ fn write_list_items<W: std::io::Write>(
     Ok(())
 }
 
-fn write_inlines<W: std::io::Write>(
+fn render_inlines<W: std::io::Write>(
     is: &[Inline],
     prefix: &str,
     w: &mut W,
 ) -> Result<(), std::io::Error> {
     for (i, item) in is.iter().enumerate() {
-        debug!("write_inlines: {:?}", i);
+        debug!("render_inlines: {:?}", i);
 
         match item {
             Inline::Plain(s) => write!(w, "{}", s)?,
             Inline::Emph(i) => {
                 write!(w, "*")?;
-                write_inlines(i, "", w)?;
+                render_inlines(i, "", w)?;
                 write!(w, "*")?
             }
             Inline::Strong(i) => {
                 write!(w, "**")?;
-                write_inlines(i, "", w)?;
+                render_inlines(i, "", w)?;
                 write!(w, "**")?
             }
             Inline::Code(s) => write!(w, "`{}`", s)?,
             Inline::Strikethrough(i) => {
                 write!(w, "~~")?;
-                write_inlines(i, "", w)?;
+                render_inlines(i, "", w)?;
                 write!(w, "~~")?
             }
             Inline::Link(n, l) => write!(w, "[{}]({})", n, l)?,
@@ -389,7 +389,7 @@ fn write_inlines<W: std::io::Write>(
 
 impl Render for Markdown {
     fn render<W: std::io::Write>(n: &Nodo, w: &mut W) -> Result<(), std::io::Error> {
-        write_blocks(&n.blocks, "", w)
+        render_blocks(&n.blocks, "", w)
     }
 }
 
@@ -399,7 +399,7 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     #[test]
-    fn read_and_write() {
+    fn parse_and_write() {
         let md = "# a *header* with **bold** and ~~strikethrough~~
 
 a + b
