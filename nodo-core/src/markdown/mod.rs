@@ -10,6 +10,8 @@ use std::println as debug;
 
 pub struct Markdown;
 
+const INDENT: &str = "    ";
+
 fn read_blocks(p: &mut Peekable<Parser>) -> Vec<Block> {
     let mut blocks = Vec::new();
 
@@ -344,7 +346,7 @@ fn write_list_items<W: std::io::Write>(
             }
         }
 
-        write_blocks(&item.1, &format!("{}  ", prefix), w)?;
+        write_blocks(&item.1, &format!("{}{}", prefix, INDENT), w)?;
 
         if i != is.len() - 1 {
             writeln!(w)?
@@ -404,14 +406,18 @@ a + b
 - a list
 - more list
 
-  - nested list item
+    - nested list item
 
 1. a numbered list
+
+    1. a sub numbered list
 2. a second number
 
 - [] a task looking item
 - [ ] an incomplete task list
 - [x] an complete task list
+
+    - [ ] a sub task
 
 ```rust
 some code {
