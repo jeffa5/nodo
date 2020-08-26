@@ -15,12 +15,7 @@ const INDENT: &str = "    ";
 fn parse_blocks(p: &mut Peekable<Parser>) -> Vec<Block> {
     let mut blocks = Vec::new();
 
-    loop {
-        let e = match p.next() {
-            None => return blocks,
-            Some(e) => e,
-        };
-
+    while let Some(e) = p.next() {
         debug!("parse_blocks: {:?}", e);
 
         match e {
@@ -77,12 +72,7 @@ fn parse_blocks(p: &mut Peekable<Parser>) -> Vec<Block> {
 fn parse_list_items(p: &mut Peekable<Parser>) -> Vec<ListItem> {
     let mut items = Vec::new();
 
-    loop {
-        let e = match p.next() {
-            None => break,
-            Some(e) => e,
-        };
-
+    while let Some(e) = p.next() {
         debug!("parse_list_items: {:?}", e);
 
         match e {
@@ -129,12 +119,7 @@ fn parse_list_items(p: &mut Peekable<Parser>) -> Vec<ListItem> {
 fn parse_tight_paragraph(p: &mut Peekable<Parser>) -> Vec<Inline> {
     let mut inlines = Vec::new();
 
-    loop {
-        let e = match p.peek() {
-            None => break,
-            Some(e) => e,
-        };
-
+    while let Some(e) = p.peek() {
         debug!("parse_tight_paragraph: {:?}", e);
 
         match e {
@@ -212,12 +197,7 @@ fn parse_tight_paragraph(p: &mut Peekable<Parser>) -> Vec<Inline> {
 fn parse_inlines(p: &mut Peekable<Parser>) -> Vec<Inline> {
     let mut inlines = Vec::new();
 
-    loop {
-        let e = match p.next() {
-            None => break,
-            Some(e) => e,
-        };
-
+    while let Some(e) = p.next() {
         debug!("parse_inlines: {:?}", e);
 
         match e {
