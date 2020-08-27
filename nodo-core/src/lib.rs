@@ -3,11 +3,15 @@ mod markdown;
 pub use markdown::Markdown;
 
 pub trait Parse {
-    fn parse(s: &str) -> Nodo;
+    type ParseError;
+
+    fn parse(s: &str) -> Result<Nodo, Self::ParseError>;
 }
 
 pub trait Render {
-    fn render<W: std::io::Write>(n: &Nodo, w: &mut W) -> Result<(), std::io::Error>;
+    type RenderError;
+
+    fn render<W: std::io::Write>(n: &Nodo, w: &mut W) -> Result<(), Self::RenderError>;
 }
 
 #[derive(Debug, Eq, PartialEq)]

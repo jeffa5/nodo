@@ -7,6 +7,7 @@ edition = "2018"
 [dependencies]
 pulldown-cmark = "0.7.2"
 log = "0.4.11"
+thiserror = "1.0.20"
 
 [dev-dependencies]
 pretty_assertions = "*"

@@ -1,6 +1,7 @@
 use crate::{Block, Inline, ListItem, ListType, Nodo, Parse, Render};
 use pulldown_cmark::{Event, Options, Parser, Tag};
-use std::iter::Peekable;
+use std::{io, iter::Peekable};
+use thiserror::Error;
 
 #[cfg(not(test))]
 use log::debug;
@@ -9,6 +10,15 @@ use log::debug;
 use std::println as debug;
 
 pub struct Markdown;
+
+#[derive(Error, Debug)]
+pub enum ParseError {}
+
+#[derive(Error, Debug)]
+pub enum RenderError {
+    #[error("failed to write content: {0}")]
+    WriteFailure(#[from] io::Error),
+}
 
 const INDENT: &str = "    ";
 
@@ -257,12 +267,14 @@ fn parse_text(p: &mut Peekable<Parser>) -> String {
 }
 
 impl Parse for Markdown {
-    fn parse(s: &str) -> Nodo {
+    type ParseError = ParseError;
+
+    fn parse(s: &str) -> Result<Nodo, Self::ParseError> {
         let mut opts = Options::empty();
         opts.insert(Options::ENABLE_TASKLISTS);
         opts.insert(Options::ENABLE_STRIKETHROUGH);
         let blocks = parse_blocks(&mut (Parser::new_ext(s, opts)).peekable());
-        Nodo { blocks }
+        Ok(Nodo { blocks })
     }
 }
 
@@ -371,8 +383,11 @@ fn render_inlines<W: std::io::Write>(
 }
 
 impl Render for Markdown {
-    fn render<W: std::io::Write>(n: &Nodo, w: &mut W) -> Result<(), std::io::Error> {
-        render_blocks(&n.blocks, "", w)
+    type RenderError = RenderError;
+
+    fn render<W: std::io::Write>(n: &Nodo, w: &mut W) -> Result<(), Self::RenderError> {
+        render_blocks(&n.blocks, "", w)?;
+        Ok(())
     }
 }
 
@@ -415,7 +430,7 @@ some code {
     echo
 }
 ```";
-        let nodo = Markdown::parse(md);
+        let nodo = Markdown::parse(md).unwrap();
 
         let mut out = Vec::new();
         Markdown::render(&nodo, &mut out).unwrap();
