@@ -12,7 +12,16 @@ use std::println as debug;
 pub struct Markdown;
 
 #[derive(Error, Debug)]
-pub enum ParseError {}
+pub enum ParseError {
+    #[error("found an unexpected event: {event}")]
+    UnexpectedElement { event: String },
+
+    #[error("received non-text event while parsing plaintext: {event}")]
+    NoText { event: String },
+
+    #[error("found non-end event while parsing plaintext: {event}")]
+    ExpectedEnd { event: String },
+}
 
 #[derive(Error, Debug)]
 pub enum RenderError {
@@ -22,29 +31,29 @@ pub enum RenderError {
 
 const INDENT: &str = "    ";
 
-fn parse_blocks(p: &mut Peekable<Parser>) -> Vec<Block> {
+fn parse_blocks(p: &mut Peekable<Parser>) -> Result<Vec<Block>, ParseError> {
     let mut blocks = Vec::new();
 
     while let Some(e) = p.next() {
         debug!("parse_blocks: {:?}", e);
 
         match e {
-            Event::Start(tag) => match tag {
-                Tag::Heading(level) => blocks.push(Block::Heading(level, parse_inlines(p))),
-                Tag::Paragraph => blocks.push(Block::Paragraph(parse_inlines(p))),
-                Tag::BlockQuote => blocks.push(Block::Quote(parse_blocks(p))),
+            Event::Start(ref tag) => match tag {
+                Tag::Heading(level) => blocks.push(Block::Heading(*level, parse_inlines(p)?)),
+                Tag::Paragraph => blocks.push(Block::Paragraph(parse_inlines(p)?)),
+                Tag::BlockQuote => blocks.push(Block::Quote(parse_blocks(p)?)),
                 Tag::CodeBlock(kind) => {
                     let lang = match kind {
                         pulldown_cmark::CodeBlockKind::Indented => String::new(),
                         pulldown_cmark::CodeBlockKind::Fenced(lang) => lang.to_string(),
                     };
-                    blocks.push(Block::Code(lang, parse_text(p)))
+                    blocks.push(Block::Code(lang, parse_text(p)?))
                 }
                 Tag::List(kind) => {
                     if kind.is_some() {
-                        blocks.push(Block::List(ListType::Numbered, parse_list_items(p)))
+                        blocks.push(Block::List(ListType::Numbered, parse_list_items(p)?))
                     } else {
-                        blocks.push(Block::List(ListType::Plain, parse_list_items(p)))
+                        blocks.push(Block::List(ListType::Plain, parse_list_items(p)?))
                     }
                 }
                 Tag::Item
@@ -57,12 +66,14 @@ fn parse_blocks(p: &mut Peekable<Parser>) -> Vec<Block> {
                 | Tag::Strikethrough
                 | Tag::Strong
                 | Tag::Link(_, _, _)
-                | Tag::Image(_, _, _) => unimplemented!(),
+                | Tag::Image(_, _, _) => Err(ParseError::UnexpectedElement {
+                    event: format!("{:?}", e),
+                })?,
             },
             Event::End(_) => break,
             Event::Text(s) => {
                 let mut text = vec![Inline::Plain(s.to_string())];
-                let mut inlines = parse_tight_paragraph(p);
+                let mut inlines = parse_tight_paragraph(p)?;
                 text.append(&mut inlines);
                 blocks.push(Block::Paragraph(text))
             }
@@ -71,22 +82,24 @@ fn parse_blocks(p: &mut Peekable<Parser>) -> Vec<Block> {
             | Event::FootnoteReference(_)
             | Event::HardBreak
             | Event::SoftBreak
-            | Event::TaskListMarker(_) => unimplemented!(),
+            | Event::TaskListMarker(_) => Err(ParseError::UnexpectedElement {
+                event: format!("{:?}", e),
+            })?,
             Event::Rule => blocks.push(Block::Rule),
         }
     }
 
-    blocks
+    Ok(blocks)
 }
 
-fn parse_list_items(p: &mut Peekable<Parser>) -> Vec<ListItem> {
+fn parse_list_items(p: &mut Peekable<Parser>) -> Result<Vec<ListItem>, ParseError> {
     let mut items = Vec::new();
 
     while let Some(e) = p.next() {
         debug!("parse_list_items: {:?}", e);
 
         match e {
-            Event::Start(tag) => match tag {
+            Event::Start(ref tag) => match tag {
                 Tag::Paragraph
                 | Tag::Heading(_)
                 | Tag::BlockQuote
@@ -101,32 +114,36 @@ fn parse_list_items(p: &mut Peekable<Parser>) -> Vec<ListItem> {
                 | Tag::Strong
                 | Tag::Strikethrough
                 | Tag::Link(_, _, _)
-                | Tag::Image(_, _, _) => unimplemented!(),
+                | Tag::Image(_, _, _) => Err(ParseError::UnexpectedElement {
+                    event: format!("{:?}", e),
+                })?,
                 Tag::Item => match p.peek() {
                     None => break,
                     Some(Event::TaskListMarker(b)) => {
                         let b = *b;
                         p.next().unwrap();
-                        items.push(ListItem(Some(b), parse_blocks(p)))
+                        items.push(ListItem(Some(b), parse_blocks(p)?))
                     }
-                    _ => items.push(ListItem(None, parse_blocks(p))),
+                    _ => items.push(ListItem(None, parse_blocks(p)?)),
                 },
             },
             Event::End(_) => break,
             Event::Text(_) | Event::Code(_) | Event::Html(_) => {
-                items.push(ListItem(None, parse_blocks(p)))
+                items.push(ListItem(None, parse_blocks(p)?))
             }
-            Event::FootnoteReference(_) => todo!(),
-            Event::SoftBreak | Event::HardBreak => items.push(ListItem(None, parse_blocks(p))),
+            Event::FootnoteReference(_) => Err(ParseError::UnexpectedElement {
+                event: format!("{:?}", e),
+            })?,
+            Event::SoftBreak | Event::HardBreak => items.push(ListItem(None, parse_blocks(p)?)),
             Event::Rule => continue,
-            Event::TaskListMarker(b) => items.push(ListItem(Some(b), parse_blocks(p))),
+            Event::TaskListMarker(b) => items.push(ListItem(Some(b), parse_blocks(p)?)),
         }
     }
 
-    items
+    Ok(items)
 }
 
-fn parse_tight_paragraph(p: &mut Peekable<Parser>) -> Vec<Inline> {
+fn parse_tight_paragraph(p: &mut Peekable<Parser>) -> Result<Vec<Inline>, ParseError> {
     let mut inlines = Vec::new();
 
     while let Some(e) = p.peek() {
@@ -147,15 +164,15 @@ fn parse_tight_paragraph(p: &mut Peekable<Parser>) -> Vec<Inline> {
                 | Tag::Item => break,
                 Tag::Emphasis => {
                     p.next().unwrap();
-                    inlines.push(Inline::Emph(parse_tight_paragraph(p)))
+                    inlines.push(Inline::Emph(parse_tight_paragraph(p)?))
                 }
                 Tag::Strong => {
                     p.next().unwrap();
-                    inlines.push(Inline::Strong(parse_tight_paragraph(p)))
+                    inlines.push(Inline::Strong(parse_tight_paragraph(p)?))
                 }
                 Tag::Strikethrough => {
                     p.next().unwrap();
-                    inlines.push(Inline::Strikethrough(parse_tight_paragraph(p)))
+                    inlines.push(Inline::Strikethrough(parse_tight_paragraph(p)?))
                 }
                 Tag::Link(_type, s, l) => {
                     let (s, l) = (s.to_string(), l.to_string());
@@ -184,7 +201,6 @@ fn parse_tight_paragraph(p: &mut Peekable<Parser>) -> Vec<Inline> {
                 p.next().unwrap();
                 inlines.push(Inline::Html(s))
             }
-            Event::FootnoteReference(_) => todo!(),
             Event::SoftBreak => {
                 p.next().unwrap();
                 inlines.push(Inline::SoftBreak)
@@ -197,21 +213,25 @@ fn parse_tight_paragraph(p: &mut Peekable<Parser>) -> Vec<Inline> {
                 p.next().unwrap();
                 continue;
             }
-            Event::TaskListMarker(_) => unimplemented!(),
+            Event::FootnoteReference(_) | Event::TaskListMarker(_) => {
+                Err(ParseError::UnexpectedElement {
+                    event: format!("{:?}", e),
+                })?
+            }
         }
     }
 
-    inlines
+    Ok(inlines)
 }
 
-fn parse_inlines(p: &mut Peekable<Parser>) -> Vec<Inline> {
+fn parse_inlines(p: &mut Peekable<Parser>) -> Result<Vec<Inline>, ParseError> {
     let mut inlines = Vec::new();
 
     while let Some(e) = p.next() {
         debug!("parse_inlines: {:?}", e);
 
         match e {
-            Event::Start(tag) => match tag {
+            Event::Start(ref tag) => match tag {
                 Tag::Paragraph
                 | Tag::Heading(_)
                 | Tag::BlockQuote
@@ -222,10 +242,12 @@ fn parse_inlines(p: &mut Peekable<Parser>) -> Vec<Inline> {
                 | Tag::TableHead
                 | Tag::TableRow
                 | Tag::TableCell
-                | Tag::Item => unimplemented!(),
-                Tag::Emphasis => inlines.push(Inline::Emph(parse_inlines(p))),
-                Tag::Strong => inlines.push(Inline::Strong(parse_inlines(p))),
-                Tag::Strikethrough => inlines.push(Inline::Strikethrough(parse_inlines(p))),
+                | Tag::Item => Err(ParseError::UnexpectedElement {
+                    event: format!("{:?}", e),
+                })?,
+                Tag::Emphasis => inlines.push(Inline::Emph(parse_inlines(p)?)),
+                Tag::Strong => inlines.push(Inline::Strong(parse_inlines(p)?)),
+                Tag::Strikethrough => inlines.push(Inline::Strikethrough(parse_inlines(p)?)),
                 Tag::Link(_type, s, l) => inlines.push(Inline::Link(s.to_string(), l.to_string())),
                 Tag::Image(_type, s, l) => {
                     inlines.push(Inline::Image(s.to_string(), l.to_string()))
@@ -235,20 +257,23 @@ fn parse_inlines(p: &mut Peekable<Parser>) -> Vec<Inline> {
             Event::Text(s) => inlines.push(Inline::Plain(s.to_string())),
             Event::Code(s) => inlines.push(Inline::Code(s.to_string())),
             Event::Html(s) => inlines.push(Inline::Html(s.to_string())),
-            Event::FootnoteReference(_) => todo!(),
             Event::SoftBreak => inlines.push(Inline::SoftBreak),
             Event::HardBreak => inlines.push(Inline::HardBreak),
             Event::Rule => continue,
-            Event::TaskListMarker(_) => unimplemented!(),
+            Event::FootnoteReference(_) | Event::TaskListMarker(_) => {
+                Err(ParseError::UnexpectedElement {
+                    event: format!("{:?}", e),
+                })?
+            }
         }
     }
 
-    inlines
+    Ok(inlines)
 }
 
-fn parse_text(p: &mut Peekable<Parser>) -> String {
+fn parse_text(p: &mut Peekable<Parser>) -> Result<String, ParseError> {
     let e = match p.next() {
-        None => return "".to_string(),
+        None => return Ok("".to_string()),
         Some(e) => e,
     };
 
@@ -256,13 +281,17 @@ fn parse_text(p: &mut Peekable<Parser>) -> String {
 
     let ret = match e {
         Event::Text(s) => s.to_string(),
-        _ => unimplemented!(),
+        _ => Err(ParseError::NoText {
+            event: format!("{:?}", e),
+        })?,
     };
 
     match p.next() {
-        None => ret,
-        Some(Event::End(_)) => ret,
-        Some(e) => panic!("{:?}", e),
+        None => Ok(ret),
+        Some(Event::End(_)) => Ok(ret),
+        Some(e) => Err(ParseError::ExpectedEnd {
+            event: format!("{:?}", e),
+        }),
     }
 }
 
@@ -273,7 +302,7 @@ impl Parse for Markdown {
         let mut opts = Options::empty();
         opts.insert(Options::ENABLE_TASKLISTS);
         opts.insert(Options::ENABLE_STRIKETHROUGH);
-        let blocks = parse_blocks(&mut (Parser::new_ext(s, opts)).peekable());
+        let blocks = parse_blocks(&mut (Parser::new_ext(s, opts)).peekable())?;
         Ok(Nodo { blocks })
     }
 }
