@@ -3,6 +3,7 @@ use lazy_static::lazy_static;
 use std::path::PathBuf;
 
 mod edit;
+mod show;
 
 #[derive(Clap, Debug)]
 #[clap(name = "nodo")]
@@ -33,4 +34,7 @@ pub struct GlobalOpts {
 pub enum SubCommand {
     /// Edit an existing nodo, or create a new one
     Edit(edit::Edit),
+
+    /// Show the existing nodos
+    Show(show::Show),
 }

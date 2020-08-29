@@ -19,7 +19,7 @@ pub struct Edit {
 }
 
 impl Edit {
-    pub fn run(self, g: &GlobalOpts) -> Result<()> {
+    pub fn run(&self, g: &GlobalOpts) -> Result<()> {
         let nodo_path = find_nodo(&g.root.join(&self.target));
 
         if !nodo_path.exists() {
@@ -47,7 +47,7 @@ impl Edit {
         Ok(())
     }
 
-    fn create_nodo(self, path: &Path) -> Result<()> {
+    fn create_nodo(&self, path: &Path) -> Result<()> {
         print!(
             "Target not found, would you like to create {}? [Y/n]: ",
             self.target
