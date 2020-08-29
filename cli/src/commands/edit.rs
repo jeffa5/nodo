@@ -4,7 +4,6 @@ use crate::{
 };
 use anyhow::{anyhow, Result};
 use clap::Clap;
-use colored::*;
 use log::{debug, info};
 use nodo_core::{Markdown, Parse, Render};
 use std::{env, fs, fs::File, io::Read, path::Path, process};
@@ -62,7 +61,10 @@ impl Edit {
                 fs::create_dir_all(p)?;
             }
             File::create(path)?;
-            println!("Created {}", path.display().to_string().green().bold());
+            println!(
+                "Created {}",
+                user::file_name_string(path.display().to_string())
+            );
         } else {
             return Err(anyhow!("Nodo not created"));
         }

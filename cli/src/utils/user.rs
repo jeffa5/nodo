@@ -14,3 +14,11 @@ pub fn confirm(prompt: &str) -> Result<bool> {
         _ => Ok(false),
     }
 }
+
+pub fn dir_name_string<S: AsRef<str>>(name: S) -> String {
+    format!("{}", name.as_ref().blue().bold())
+}
+
+pub fn file_name_string<S: AsRef<str>>(name: S) -> String {
+    format!("{}", name.as_ref().green().bold())
+}

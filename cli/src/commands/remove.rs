@@ -4,7 +4,6 @@ use crate::{
 };
 use anyhow::{anyhow, Result};
 use clap::Clap;
-use colored::*;
 use std::fs;
 
 #[derive(Clap, Debug)]
@@ -26,10 +25,14 @@ impl Remove {
             if nodo_path.is_dir() {
                 if self.force || user::confirm("This is a directory, are you sure you want to remove it and all of its contents?")?   {
                     fs::remove_dir_all(nodo_path)?;
-                    println!("Removed {}", nodo_path.display().to_string().green().bold());
+                    println!("Removed {}", user::dir_name_string(nodo_path.display().to_string()));
                 }
             } else {
-                fs::remove_file(nodo_path)?
+                fs::remove_file(nodo_path)?;
+                println!(
+                    "Removed {}",
+                    user::file_name_string(nodo_path.display().to_string())
+                );
             }
         }
         // allow a forceful removal to target a non-existant entry

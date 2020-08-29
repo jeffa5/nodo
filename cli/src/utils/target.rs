@@ -1,3 +1,4 @@
+use log::debug;
 use std::{
     path::{Path, PathBuf},
     str::FromStr,
@@ -29,13 +30,21 @@ impl Default for Target {
 impl Target {
     pub fn build_path(&self, root: &Path) -> PathBuf {
         let full_path = root.join(&self.0);
+        debug!("Built raw full path: {:?}", full_path);
 
         if !full_path.exists() {
-            with_md_extension(&full_path)
-        } else if full_path.is_dir() {
-            full_path
+            let path = with_md_extension(&full_path);
+            debug!(
+                "Built full path with extension since argument didn't exist: {:?}",
+                path
+            );
+            path
         } else {
-            with_md_extension(&full_path)
+            debug!(
+                "Built full path without adding extension since argument already exists: {:?}",
+                full_path
+            );
+            full_path
         }
     }
 }

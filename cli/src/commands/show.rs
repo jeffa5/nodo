@@ -1,7 +1,9 @@
-use crate::{commands::GlobalOpts, utils::target::Target};
+use crate::{
+    commands::GlobalOpts,
+    utils::{target::Target, user},
+};
 use anyhow::Result;
 use clap::Clap;
-use colored::*;
 use log::debug;
 use std::{fs, fs::File, path::Path};
 
@@ -32,17 +34,16 @@ impl Show {
     }
 }
 
-fn dir_name_string(name: &str) -> String {
-    format!("{}", name.blue().bold())
-}
-
 fn print_tree(root: &Path) -> Result<()> {
     debug!("Printing tree from root {}", root.display());
     for entry in fs::read_dir(root)? {
         let entry = entry?;
         let path = entry.path();
         if path.is_dir() {
-            println!("{}", dir_name_string(&entry.file_name().to_string_lossy()));
+            println!(
+                "{}",
+                user::dir_name_string(&entry.file_name().to_string_lossy())
+            );
             print_dir(&path, "")?
         } else {
             print_nodo_summary(&path)?
@@ -62,7 +63,10 @@ fn print_dir(path: &Path, prefix: &str) -> Result<()> {
         if i == children_len - 1 {
             print!("{}└─ ", prefix);
             if path.is_dir() {
-                println!("{}", dir_name_string(&entry.file_name().to_string_lossy()));
+                println!(
+                    "{}",
+                    user::dir_name_string(&entry.file_name().to_string_lossy())
+                );
                 print_dir(&path, &format!("{}   ", prefix))?
             } else {
                 print_nodo_summary(&path)?
@@ -70,7 +74,10 @@ fn print_dir(path: &Path, prefix: &str) -> Result<()> {
         } else {
             print!("{}├─ ", prefix);
             if path.is_dir() {
-                println!("{}", dir_name_string(&entry.file_name().to_string_lossy()));
+                println!(
+                    "{}",
+                    user::dir_name_string(&entry.file_name().to_string_lossy())
+                );
                 print_dir(&path, &format!("{}│  ", prefix))?
             } else {
                 print_nodo_summary(&path)?;
@@ -84,7 +91,7 @@ fn print_dir(path: &Path, prefix: &str) -> Result<()> {
 fn print_nodo_summary(path: &Path) -> Result<()> {
     println!(
         "{}",
-        path.file_name().unwrap().to_string_lossy().green().bold()
+        user::file_name_string(&path.file_name().unwrap().to_string_lossy())
     );
     Ok(())
 }
