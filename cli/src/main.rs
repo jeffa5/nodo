@@ -30,5 +30,6 @@ fn main() -> Result<()> {
     match opts.subcommand {
         SubCommand::Edit(e) => e.run(&opts.globals),
         SubCommand::Show(s) => s.run(&opts.globals),
+        SubCommand::Remove(r) => r.run(&opts.globals),
     }
 }

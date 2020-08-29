@@ -3,6 +3,7 @@ use lazy_static::lazy_static;
 use std::path::PathBuf;
 
 mod edit;
+mod remove;
 mod show;
 
 #[derive(Clap, Debug)]
@@ -37,4 +38,7 @@ pub enum SubCommand {
 
     /// Show the existing nodos
     Show(show::Show),
+
+    /// Remove the given nodo or directory
+    Remove(remove::Remove),
 }
