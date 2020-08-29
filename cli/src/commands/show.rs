@@ -29,7 +29,7 @@ impl Show {
         );
         if target.exists() {
             if target.is_dir() {
-                self.print_tree(&target)
+                self.print_tree(&target, self.target.is_none())
             } else {
                 print_nodo(&target)
             }
@@ -38,11 +38,11 @@ impl Show {
         }
     }
 
-    fn print_tree(&self, root: &Path) -> Result<()> {
-        debug!("Printing tree from root {}", root.display());
-        for entry in fs::read_dir(root)? {
+    fn print_tree(&self, target: &Path, is_root: bool) -> Result<()> {
+        debug!("Printing tree from root {}", target.display());
+        for entry in fs::read_dir(target)? {
             let entry = entry?;
-            if !self.all && utils::is_hidden_dir(&entry.file_name().to_string_lossy()) {
+            if !self.all && is_root && utils::is_hidden_dir(&entry.file_name().to_string_lossy()) {
                 continue;
             }
             let path = entry.path();
