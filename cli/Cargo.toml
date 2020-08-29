@@ -1,0 +1,14 @@
+[package]
+name = "cli"
+version = "0.1.0"
+authors = ["Andrew Jeffery <dev@jeffas.io>"]
+edition = "2018"
+
+[dependencies]
+nodo-core = { path = "../core" }
+clap = "3.0.0-beta.1"
+anyhow = "1.0.32"
+log = "0.4.11"
+simple_logger = "1.6.0"
+dirs = "3.0.1"
+lazy_static = "1.4.0"
