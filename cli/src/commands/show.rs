@@ -1,4 +1,4 @@
-use crate::commands::GlobalOpts;
+use crate::{commands::GlobalOpts, utils::Target};
 use anyhow::Result;
 use clap::Clap;
 use colored::*;
@@ -9,12 +9,17 @@ use std::{fs, fs::File, path::Path};
 pub struct Show {
     /// The target to edit
     #[clap(name = "TARGET")]
-    target: Option<String>,
+    target: Option<Target>,
 }
 
 impl Show {
     pub fn run(&self, g: &GlobalOpts) -> Result<()> {
-        let target = g.root.join(self.target.as_ref().unwrap_or(&String::new()));
+        let target = g.root.join(
+            self.target
+                .as_ref()
+                .unwrap_or(&Target::default())
+                .build_path(&g.root),
+        );
         if target.exists() {
             if target.is_dir() {
                 print_tree(&target)
@@ -66,18 +71,16 @@ fn print_dir(path: &Path, prefix: &str) -> Result<()> {
                 print!("{}└─ ", prefix);
                 print_nodo_summary(&path)?
             }
+        } else if path.is_dir() {
+            println!(
+                "{}├─ {}",
+                prefix,
+                dir_name_string(&entry.file_name().to_string_lossy())
+            );
+            print_dir(&path, &format!("{}│  ", prefix))?
         } else {
-            if path.is_dir() {
-                println!(
-                    "{}├─ {}",
-                    prefix,
-                    dir_name_string(&entry.file_name().to_string_lossy())
-                );
-                print_dir(&path, &format!("{}│  ", prefix))?
-            } else {
-                print!("{}", prefix);
-                print_nodo_summary(&path)?;
-            }
+            print!("{}", prefix);
+            print_nodo_summary(&path)?;
         }
     }
 

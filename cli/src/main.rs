@@ -1,3 +1,5 @@
+#![feature(never_type)]
+
 mod commands;
 mod utils;
 

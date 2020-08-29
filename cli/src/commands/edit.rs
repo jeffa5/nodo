@@ -1,4 +1,4 @@
-use crate::{commands::GlobalOpts, utils::find_nodo};
+use crate::{commands::GlobalOpts, utils::Target};
 use anyhow::{anyhow, Result};
 use clap::Clap;
 use log::{debug, info};
@@ -15,12 +15,12 @@ use std::{
 pub struct Edit {
     /// The target to edit
     #[clap(name = "TARGET")]
-    target: String,
+    target: Target,
 }
 
 impl Edit {
     pub fn run(&self, g: &GlobalOpts) -> Result<()> {
-        let nodo_path = find_nodo(&g.root.join(&self.target));
+        let nodo_path = &self.target.build_path(&g.root);
 
         if !nodo_path.exists() {
             debug!("Nodo doesn't exist yet");
