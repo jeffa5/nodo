@@ -374,8 +374,8 @@ fn render_inlines<W: std::io::Write>(
     prefix: &str,
     w: &mut W,
 ) -> Result<(), std::io::Error> {
-    for (i, item) in is.iter().enumerate() {
-        debug!("render_inlines: {:?}", i);
+    for item in is.iter() {
+        debug!("render_inlines: {:?}", item);
 
         match item {
             Inline::Plain(s) => write!(w, "{}", s)?,
