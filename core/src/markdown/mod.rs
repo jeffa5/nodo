@@ -4,10 +4,10 @@ use std::{io, iter::Peekable};
 use thiserror::Error;
 
 #[cfg(not(test))]
-use log::debug;
+use log::trace;
 
 #[cfg(test)]
-use std::println as debug;
+use std::println as trace;
 
 pub struct Markdown;
 
@@ -35,7 +35,7 @@ fn parse_blocks(p: &mut Peekable<Parser>) -> Result<Vec<Block>, ParseError> {
     let mut blocks = Vec::new();
 
     while let Some(e) = p.next() {
-        debug!("parse_blocks: {:?}", e);
+        trace!("parse_blocks: {:?}", e);
 
         match e {
             Event::Start(ref tag) => match tag {
@@ -96,7 +96,7 @@ fn parse_list_items(p: &mut Peekable<Parser>) -> Result<Vec<ListItem>, ParseErro
     let mut items = Vec::new();
 
     while let Some(e) = p.next() {
-        debug!("parse_list_items: {:?}", e);
+        trace!("parse_list_items: {:?}", e);
 
         match e {
             Event::Start(ref tag) => match tag {
@@ -147,7 +147,7 @@ fn parse_tight_paragraph(p: &mut Peekable<Parser>) -> Result<Vec<Inline>, ParseE
     let mut inlines = Vec::new();
 
     while let Some(e) = p.peek() {
-        debug!("parse_tight_paragraph: {:?}", e);
+        trace!("parse_tight_paragraph: {:?}", e);
 
         match e {
             Event::Start(tag) => match tag {
@@ -228,7 +228,7 @@ fn parse_inlines(p: &mut Peekable<Parser>) -> Result<Vec<Inline>, ParseError> {
     let mut inlines = Vec::new();
 
     while let Some(e) = p.next() {
-        debug!("parse_inlines: {:?}", e);
+        trace!("parse_inlines: {:?}", e);
 
         match e {
             Event::Start(ref tag) => match tag {
@@ -277,7 +277,7 @@ fn parse_text(p: &mut Peekable<Parser>) -> Result<String, ParseError> {
         Some(e) => e,
     };
 
-    debug!("parse_text: {:?}", e);
+    trace!("parse_text: {:?}", e);
 
     let ret = match e {
         Event::Text(s) => s.to_string(),
@@ -313,7 +313,7 @@ fn render_blocks<W: std::io::Write>(
     w: &mut W,
 ) -> Result<(), std::io::Error> {
     for (i, b) in bs.iter().enumerate() {
-        debug!("render_blocks: {:?}", b);
+        trace!("render_blocks: {:?}", b);
 
         match b {
             Block::Rule => write!(w, "{}---", prefix)?,
@@ -344,7 +344,7 @@ fn render_list_items<W: std::io::Write>(
     w: &mut W,
 ) -> Result<(), std::io::Error> {
     for (i, item) in is.iter().enumerate() {
-        debug!("render_list_items: {:?}", item);
+        trace!("render_list_items: {:?}", item);
 
         match list_type {
             ListType::Numbered => write!(w, "{}{}. ", if i == 0 { "" } else { prefix }, i + 1)?,
@@ -375,7 +375,7 @@ fn render_inlines<W: std::io::Write>(
     w: &mut W,
 ) -> Result<(), std::io::Error> {
     for item in is.iter() {
-        debug!("render_inlines: {:?}", item);
+        trace!("render_inlines: {:?}", item);
 
         match item {
             Inline::Plain(s) => write!(w, "{}", s)?,
