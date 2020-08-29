@@ -66,9 +66,11 @@ fn parse_blocks(p: &mut Peekable<Parser>) -> Result<Vec<Block>, ParseError> {
                 | Tag::Strikethrough
                 | Tag::Strong
                 | Tag::Link(_, _, _)
-                | Tag::Image(_, _, _) => Err(ParseError::UnexpectedElement {
-                    event: format!("{:?}", e),
-                })?,
+                | Tag::Image(_, _, _) => {
+                    return Err(ParseError::UnexpectedElement {
+                        event: format!("{:?}", e),
+                    })
+                }
             },
             Event::End(_) => break,
             Event::Text(s) => {
@@ -82,9 +84,11 @@ fn parse_blocks(p: &mut Peekable<Parser>) -> Result<Vec<Block>, ParseError> {
             | Event::FootnoteReference(_)
             | Event::HardBreak
             | Event::SoftBreak
-            | Event::TaskListMarker(_) => Err(ParseError::UnexpectedElement {
-                event: format!("{:?}", e),
-            })?,
+            | Event::TaskListMarker(_) => {
+                return Err(ParseError::UnexpectedElement {
+                    event: format!("{:?}", e),
+                })
+            }
             Event::Rule => blocks.push(Block::Rule),
         }
     }
@@ -114,9 +118,11 @@ fn parse_list_items(p: &mut Peekable<Parser>) -> Result<Vec<ListItem>, ParseErro
                 | Tag::Strong
                 | Tag::Strikethrough
                 | Tag::Link(_, _, _)
-                | Tag::Image(_, _, _) => Err(ParseError::UnexpectedElement {
-                    event: format!("{:?}", e),
-                })?,
+                | Tag::Image(_, _, _) => {
+                    return Err(ParseError::UnexpectedElement {
+                        event: format!("{:?}", e),
+                    })
+                }
                 Tag::Item => match p.peek() {
                     None => break,
                     Some(Event::TaskListMarker(b)) => {
@@ -131,9 +137,11 @@ fn parse_list_items(p: &mut Peekable<Parser>) -> Result<Vec<ListItem>, ParseErro
             Event::Text(_) | Event::Code(_) | Event::Html(_) => {
                 items.push(ListItem(None, parse_blocks(p)?))
             }
-            Event::FootnoteReference(_) => Err(ParseError::UnexpectedElement {
-                event: format!("{:?}", e),
-            })?,
+            Event::FootnoteReference(_) => {
+                return Err(ParseError::UnexpectedElement {
+                    event: format!("{:?}", e),
+                })
+            }
             Event::SoftBreak | Event::HardBreak => items.push(ListItem(None, parse_blocks(p)?)),
             Event::Rule => continue,
             Event::TaskListMarker(b) => items.push(ListItem(Some(b), parse_blocks(p)?)),
@@ -214,9 +222,9 @@ fn parse_tight_paragraph(p: &mut Peekable<Parser>) -> Result<Vec<Inline>, ParseE
                 continue;
             }
             Event::FootnoteReference(_) | Event::TaskListMarker(_) => {
-                Err(ParseError::UnexpectedElement {
+                return Err(ParseError::UnexpectedElement {
                     event: format!("{:?}", e),
-                })?
+                })
             }
         }
     }
@@ -242,9 +250,11 @@ fn parse_inlines(p: &mut Peekable<Parser>) -> Result<Vec<Inline>, ParseError> {
                 | Tag::TableHead
                 | Tag::TableRow
                 | Tag::TableCell
-                | Tag::Item => Err(ParseError::UnexpectedElement {
-                    event: format!("{:?}", e),
-                })?,
+                | Tag::Item => {
+                    return Err(ParseError::UnexpectedElement {
+                        event: format!("{:?}", e),
+                    })
+                }
                 Tag::Emphasis => inlines.push(Inline::Emph(parse_inlines(p)?)),
                 Tag::Strong => inlines.push(Inline::Strong(parse_inlines(p)?)),
                 Tag::Strikethrough => inlines.push(Inline::Strikethrough(parse_inlines(p)?)),
@@ -261,9 +271,9 @@ fn parse_inlines(p: &mut Peekable<Parser>) -> Result<Vec<Inline>, ParseError> {
             Event::HardBreak => inlines.push(Inline::HardBreak),
             Event::Rule => continue,
             Event::FootnoteReference(_) | Event::TaskListMarker(_) => {
-                Err(ParseError::UnexpectedElement {
+                return Err(ParseError::UnexpectedElement {
                     event: format!("{:?}", e),
-                })?
+                })
             }
         }
     }
@@ -281,9 +291,11 @@ fn parse_text(p: &mut Peekable<Parser>) -> Result<String, ParseError> {
 
     let ret = match e {
         Event::Text(s) => s.to_string(),
-        _ => Err(ParseError::NoText {
-            event: format!("{:?}", e),
-        })?,
+        _ => {
+            return Err(ParseError::NoText {
+                event: format!("{:?}", e),
+            })
+        }
     };
 
     match p.next() {
