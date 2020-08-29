@@ -3,6 +3,7 @@ use lazy_static::lazy_static;
 use std::path::PathBuf;
 
 mod edit;
+mod r#move;
 mod remove;
 pub mod show;
 
@@ -41,4 +42,7 @@ pub enum SubCommand {
 
     /// Remove the given nodo or directory
     Remove(remove::Remove),
+
+    /// Move a nodo or directory
+    Move(r#move::Move),
 }
