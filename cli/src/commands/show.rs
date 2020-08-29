@@ -1,5 +1,6 @@
 use crate::{
     commands::GlobalOpts,
+    utils,
     utils::{target::Target, user},
 };
 use anyhow::Result;
@@ -12,6 +13,10 @@ pub struct Show {
     /// The target to edit
     #[clap(name = "TARGET")]
     target: Option<Target>,
+
+    /// Show all, including hidden dirs
+    #[clap(short, long)]
+    all: bool,
 }
 
 impl Show {
@@ -24,7 +29,7 @@ impl Show {
         );
         if target.exists() {
             if target.is_dir() {
-                print_tree(&target)
+                self.print_tree(&target)
             } else {
                 print_nodo(&target)
             }
@@ -32,25 +37,28 @@ impl Show {
             Err(anyhow::anyhow!("Target does not exist!"))
         }
     }
-}
 
-fn print_tree(root: &Path) -> Result<()> {
-    debug!("Printing tree from root {}", root.display());
-    for entry in fs::read_dir(root)? {
-        let entry = entry?;
-        let path = entry.path();
-        if path.is_dir() {
-            println!(
-                "{}",
-                user::dir_name_string(&entry.file_name().to_string_lossy())
-            );
-            print_dir(&path, "")?
-        } else {
-            print_nodo_summary(&path)?
+    fn print_tree(&self, root: &Path) -> Result<()> {
+        debug!("Printing tree from root {}", root.display());
+        for entry in fs::read_dir(root)? {
+            let entry = entry?;
+            if !self.all && utils::is_hidden_dir(&entry.file_name().to_string_lossy()) {
+                continue;
+            }
+            let path = entry.path();
+            if path.is_dir() {
+                println!(
+                    "{}",
+                    user::dir_name_string(&entry.file_name().to_string_lossy())
+                );
+                print_dir(&path, "")?
+            } else {
+                print_nodo_summary(&path)?
+            }
         }
-    }
 
-    Ok(())
+        Ok(())
+    }
 }
 
 fn print_dir(path: &Path, prefix: &str) -> Result<()> {

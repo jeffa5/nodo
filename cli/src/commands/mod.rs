@@ -2,6 +2,7 @@ use clap::Clap;
 use lazy_static::lazy_static;
 use std::path::PathBuf;
 
+mod archive;
 mod edit;
 mod r#move;
 mod remove;
@@ -45,4 +46,7 @@ pub enum SubCommand {
 
     /// Move a nodo or directory
     Move(r#move::Move),
+
+    /// Archive the given nodo or directory
+    Archive(archive::Archive),
 }
