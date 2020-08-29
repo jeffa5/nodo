@@ -5,7 +5,7 @@ use colored::*;
 use log::debug;
 use std::{fs, fs::File, path::Path};
 
-#[derive(Clap, Debug)]
+#[derive(Clap, Debug, Default)]
 pub struct Show {
     /// The target to edit
     #[clap(name = "TARGET")]

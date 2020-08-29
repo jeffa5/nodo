@@ -5,7 +5,7 @@ mod utils;
 
 use anyhow::Result;
 use clap::Clap;
-use commands::{Opts, SubCommand};
+use commands::{show::Show, Opts, SubCommand};
 use log::{info, Level};
 
 fn main() -> Result<()> {
@@ -28,8 +28,11 @@ fn main() -> Result<()> {
     info!("raw options: {:?}", opts);
 
     match opts.subcommand {
-        SubCommand::Edit(e) => e.run(&opts.globals),
-        SubCommand::Show(s) => s.run(&opts.globals),
-        SubCommand::Remove(r) => r.run(&opts.globals),
+        None => Show::default().run(&opts.globals),
+        Some(cmd) => match cmd {
+            SubCommand::Edit(e) => e.run(&opts.globals),
+            SubCommand::Show(s) => s.run(&opts.globals),
+            SubCommand::Remove(r) => r.run(&opts.globals),
+        },
     }
 }

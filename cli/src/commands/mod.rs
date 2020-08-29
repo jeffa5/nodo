@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 mod edit;
 mod remove;
-mod show;
+pub mod show;
 
 #[derive(Clap, Debug)]
 #[clap(name = "nodo")]
@@ -17,7 +17,7 @@ pub struct Opts {
     pub globals: GlobalOpts,
 
     #[clap(subcommand)]
-    pub subcommand: SubCommand,
+    pub subcommand: Option<SubCommand>,
 }
 
 lazy_static! {
