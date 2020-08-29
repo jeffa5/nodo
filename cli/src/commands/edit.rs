@@ -1,21 +1,25 @@
-use crate::{commands::GlobalOpts, utils::Target};
+use crate::{
+    commands::GlobalOpts,
+    utils::{target::Target, user},
+};
 use anyhow::{anyhow, Result};
 use clap::Clap;
+use colored::*;
 use log::{debug, info};
 use nodo_core::{Markdown, Parse, Render};
-use std::{
-    env, fs,
-    fs::File,
-    io::{prelude::*, stdin, stdout},
-    path::Path,
-    process,
-};
+use std::{env, fs, fs::File, io::Read, path::Path, process};
 
 #[derive(Clap, Debug)]
 pub struct Edit {
     /// The target to edit
     #[clap(name = "TARGET")]
     target: Target,
+
+    /// Create the target if it doesn't exist without a prompt
+    ///
+    /// This will prevent opening of the editor, designed for scripts
+    #[clap(short, long)]
+    create: bool,
 }
 
 impl Edit {
@@ -27,45 +31,40 @@ impl Edit {
             self.create_nodo(&nodo_path)?
         }
 
-        let editor = env::var("EDITOR")?;
-        info!("executing: '{} {}'", editor, (&nodo_path).display());
+        // create is designed for scripts so don't open an editor if specified
+        if !self.create {
+            self.edit_nodo(nodo_path)?;
+        }
 
-        if !process::Command::new(editor)
-            .arg(&nodo_path)
-            .status()?
-            .success()
-        {
+        Ok(())
+    }
+
+    fn edit_nodo(&self, path: &Path) -> Result<()> {
+        let editor = env::var("EDITOR")?;
+        info!("executing: '{} {}'", editor, path.display());
+
+        if !process::Command::new(editor).arg(&path).status()?.success() {
             return Err(anyhow!("Error occurred when editing. Try running with more verbosity (-v) for more information."));
         }
 
         // format the just edited nodo
         let mut buf = String::new();
-        File::read_to_string(&mut File::open(&nodo_path)?, &mut buf)?;
+        File::read_to_string(&mut File::open(&path)?, &mut buf)?;
         let nodo = Markdown::parse(&buf)?;
-        Markdown::render(&nodo, &mut File::create(&nodo_path)?)?;
+        Markdown::render(&nodo, &mut File::create(&path)?)?;
 
         Ok(())
     }
 
     fn create_nodo(&self, path: &Path) -> Result<()> {
-        print!(
-            "Target not found, would you like to create {}? [Y/n]: ",
-            self.target
-        );
-        stdout().lock().flush()?;
-
-        let mut input = String::new();
-        stdin().lock().read_line(&mut input)?;
-
-        match input.to_lowercase().trim() {
-            "" | "y" | "yes" => {
-                println!("Creating {}", path.display());
-                if let Some(p) = path.parent() {
-                    fs::create_dir_all(p)?;
-                }
-                File::create(path)?;
+        if self.create || user::confirm("Target not found, would you like to create it?")? {
+            if let Some(p) = path.parent() {
+                fs::create_dir_all(p)?;
             }
-            _ => (),
+            File::create(path)?;
+            println!("Created {}", path.display().to_string().green().bold());
+        } else {
+            return Err(anyhow!("Nodo not created"));
         }
 
         Ok(())

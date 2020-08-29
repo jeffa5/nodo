@@ -1,4 +1,4 @@
-use crate::{commands::GlobalOpts, utils::Target};
+use crate::{commands::GlobalOpts, utils::target::Target};
 use anyhow::Result;
 use clap::Clap;
 use colored::*;
@@ -60,27 +60,21 @@ fn print_dir(path: &Path, prefix: &str) -> Result<()> {
         let entry = entry?;
         let path = entry.path();
         if i == children_len - 1 {
+            print!("{}└─ ", prefix);
             if path.is_dir() {
-                println!(
-                    "{}└─ {}",
-                    prefix,
-                    dir_name_string(&entry.file_name().to_string_lossy())
-                );
+                println!("{}", dir_name_string(&entry.file_name().to_string_lossy()));
                 print_dir(&path, &format!("{}   ", prefix))?
             } else {
-                print!("{}└─ ", prefix);
                 print_nodo_summary(&path)?
             }
-        } else if path.is_dir() {
-            println!(
-                "{}├─ {}",
-                prefix,
-                dir_name_string(&entry.file_name().to_string_lossy())
-            );
-            print_dir(&path, &format!("{}│  ", prefix))?
         } else {
-            print!("{}", prefix);
-            print_nodo_summary(&path)?;
+            print!("{}├─ ", prefix);
+            if path.is_dir() {
+                println!("{}", dir_name_string(&entry.file_name().to_string_lossy()));
+                print_dir(&path, &format!("{}│  ", prefix))?
+            } else {
+                print_nodo_summary(&path)?;
+            }
         }
     }
 
