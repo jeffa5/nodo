@@ -1,5 +1,5 @@
 [package]
-name = "cli"
+name = "nodo-cli"
 version = "0.1.0"
 authors = ["Andrew Jeffery <dev@jeffas.io>"]
 edition = "2018"
@@ -13,3 +13,7 @@ simple_logger = "1.6.0"
 dirs = "3.0.1"
 lazy_static = "1.4.0"
 colored = "2.0.0"
+
+[[bin]]
+name = "nodo"
+path = "src/main.rs"
