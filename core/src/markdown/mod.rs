@@ -128,23 +128,36 @@ fn parse_list_items(p: &mut Peekable<Parser>) -> Result<Vec<ListItem>, ParseErro
                     Some(Event::TaskListMarker(b)) => {
                         let b = *b;
                         p.next().unwrap();
-                        items.push(ListItem(Some(b), parse_blocks(p)?))
+                        items.push(ListItem {
+                            task: Some(b),
+                            blocks: parse_blocks(p)?,
+                        })
                     }
-                    _ => items.push(ListItem(None, parse_blocks(p)?)),
+                    _ => items.push(ListItem {
+                        task: None,
+                        blocks: parse_blocks(p)?,
+                    }),
                 },
             },
             Event::End(_) => break,
-            Event::Text(_) | Event::Code(_) | Event::Html(_) => {
-                items.push(ListItem(None, parse_blocks(p)?))
-            }
+            Event::Text(_) | Event::Code(_) | Event::Html(_) => items.push(ListItem {
+                task: None,
+                blocks: parse_blocks(p)?,
+            }),
             Event::FootnoteReference(_) => {
                 return Err(ParseError::UnexpectedElement {
                     event: format!("{:?}", e),
                 })
             }
-            Event::SoftBreak | Event::HardBreak => items.push(ListItem(None, parse_blocks(p)?)),
+            Event::SoftBreak | Event::HardBreak => items.push(ListItem {
+                task: None,
+                blocks: parse_blocks(p)?,
+            }),
             Event::Rule => continue,
-            Event::TaskListMarker(b) => items.push(ListItem(Some(b), parse_blocks(p)?)),
+            Event::TaskListMarker(b) => items.push(ListItem {
+                task: Some(b),
+                blocks: parse_blocks(p)?,
+            }),
         }
     }
 
@@ -363,7 +376,7 @@ fn render_list_items<W: std::io::Write>(
             ListType::Plain => write!(w, "{}- ", if i == 0 { "" } else { prefix })?,
         }
 
-        if let Some(b) = item.0 {
+        if let Some(b) = item.task {
             if b {
                 write!(w, "[x] ")?
             } else {
@@ -371,7 +384,7 @@ fn render_list_items<W: std::io::Write>(
             }
         }
 
-        render_blocks(&item.1, &format!("{}{}", prefix, INDENT), w)?;
+        render_blocks(&item.blocks, &format!("{}{}", prefix, INDENT), w)?;
 
         if i != is.len() - 1 {
             writeln!(w)?

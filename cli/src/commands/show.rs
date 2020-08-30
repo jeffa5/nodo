@@ -5,8 +5,10 @@ use crate::{
 };
 use anyhow::Result;
 use clap::Clap;
+use colored::*;
 use log::debug;
-use std::{cmp::Ordering, fs, fs::File, path::Path};
+use nodo_core::{Markdown, Parse};
+use std::{cmp::Ordering, fs, fs::File, io::Read, path::Path};
 
 #[derive(Clap, Debug)]
 pub struct Show {
@@ -144,10 +146,28 @@ fn print_dir(path: &Path, prefix: &str, depth: i32) -> Result<()> {
 }
 
 fn print_nodo_summary(path: &Path) -> Result<()> {
-    println!(
+    let mut buf = String::new();
+    File::open(path)?.read_to_string(&mut buf)?;
+    let nodo = Markdown::parse(&buf)?;
+    let task_count = nodo.count_tasks();
+    print!(
         "{}",
         user::file_name_string(&path.file_name().unwrap().to_string_lossy())
     );
+    if task_count.total > 0 {
+        let task_count_string = format!("{}/{}", task_count.completed, task_count.total);
+        print!(
+            " [{}]",
+            if task_count.completed == task_count.total {
+                task_count_string.green().bold()
+            } else if task_count.completed > task_count.total / 2 {
+                task_count_string.yellow().bold()
+            } else {
+                task_count_string.red().bold()
+            }
+        )
+    }
+    println!();
     Ok(())
 }
 

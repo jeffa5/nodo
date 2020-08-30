@@ -1,4 +1,5 @@
 mod markdown;
+pub mod query;
 
 pub use markdown::Markdown;
 
@@ -29,7 +30,10 @@ enum Inline {
 }
 
 #[derive(Debug, Eq, PartialEq)]
-struct ListItem(Option<bool>, Vec<Block>);
+struct ListItem {
+    task: Option<bool>,
+    blocks: Vec<Block>,
+}
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
 enum ListType {
