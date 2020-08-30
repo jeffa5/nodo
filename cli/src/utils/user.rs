@@ -15,6 +15,20 @@ pub fn confirm(prompt: &str) -> Result<bool> {
     }
 }
 
+pub fn input(prompt: &str, default: Option<&str>) -> Result<String> {
+    print!("{}", prompt);
+    if let Some(default) = default {
+        print!(" [{}]", default)
+    }
+    print!(": ");
+    stdout().lock().flush()?;
+
+    let mut input = String::new();
+    stdin().lock().read_line(&mut input)?;
+
+    Ok(input.trim().to_string())
+}
+
 pub fn dir_name_string<S: AsRef<str>>(name: S) -> String {
     format!("{}", name.as_ref().blue().bold())
 }

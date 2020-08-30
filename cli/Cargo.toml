@@ -13,6 +13,7 @@ simple_logger = "1.6.0"
 dirs = "3.0.1"
 lazy_static = "1.4.0"
 colored = "2.0.0"
+git2 = "0.13.10"
 
 [[bin]]
 name = "nodo"

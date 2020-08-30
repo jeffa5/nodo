@@ -42,6 +42,9 @@ impl Show {
         debug!("Printing tree from root {}", target.display());
         for entry in fs::read_dir(target)? {
             let entry = entry?;
+            if entry.file_name().to_string_lossy() == ".git" {
+                continue;
+            }
             if !self.all && is_root && utils::is_hidden_dir(&entry.file_name().to_string_lossy()) {
                 continue;
             }

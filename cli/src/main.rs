@@ -35,6 +35,7 @@ fn main() -> Result<()> {
             SubCommand::Remove(r) => r.run(&opts.globals),
             SubCommand::Move(m) => m.run(&opts.globals),
             SubCommand::Archive(a) => a.run(&opts.globals),
+            SubCommand::Sync(s) => s.run(&opts.globals),
         },
     }
 }

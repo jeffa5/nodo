@@ -7,6 +7,7 @@ mod edit;
 mod r#move;
 mod remove;
 pub mod show;
+mod sync;
 
 #[derive(Clap, Debug)]
 #[clap(name = "nodo")]
@@ -49,4 +50,7 @@ pub enum SubCommand {
 
     /// Archive the given nodo or directory
     Archive(archive::Archive),
+
+    /// Sync the nodo repository
+    Sync(sync::Sync),
 }
