@@ -11,7 +11,7 @@ impl FromStr for Target {
     type Err = !;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Target(s.to_string()))
+        Ok(Self(s.to_string()))
     }
 }
 
@@ -32,19 +32,19 @@ impl Target {
         let full_path = root.join(&self.0);
         debug!("Built raw full path: {:?}", full_path);
 
-        if !full_path.exists() {
+        if full_path.exists() {
+            debug!(
+                "Built full path without adding extension since argument already exists: {:?}",
+                full_path
+            );
+            full_path
+        } else {
             let path = with_md_extension(&full_path);
             debug!(
                 "Built full path with extension since argument didn't exist: {:?}",
                 path
             );
             path
-        } else {
-            debug!(
-                "Built full path without adding extension since argument already exists: {:?}",
-                full_path
-            );
-            full_path
         }
     }
 }

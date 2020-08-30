@@ -1,5 +1,5 @@
 use anyhow::Result;
-use colored::*;
+use colored::Colorize;
 use std::io::{stdin, stdout, BufRead, Write};
 
 pub fn confirm(prompt: &str) -> Result<bool> {

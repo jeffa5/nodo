@@ -1,4 +1,5 @@
 #![feature(never_type)]
+#![warn(clippy::pedantic, clippy::nursery, clippy::cargo)]
 
 mod commands;
 mod utils;
@@ -17,7 +18,6 @@ fn main() -> Result<()> {
         2 => Some(Level::Warn),
         3 => Some(Level::Info),
         4 => Some(Level::Debug),
-        5 => Some(Level::Trace),
         _ => Some(Level::Trace),
     };
 

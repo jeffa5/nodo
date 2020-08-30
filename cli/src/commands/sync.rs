@@ -6,9 +6,10 @@ use log::{debug, info};
 use std::{io, io::Write, path::Path};
 
 #[derive(Clap, Debug)]
-pub struct Sync {}
+pub struct Sync;
 
 impl Sync {
+    #[allow(clippy::unused_self)]
     pub fn run(&self, g: &GlobalOpts) -> Result<()> {
         let repo = match Repository::open(&g.root) {
             Ok(repo) => repo,
@@ -79,8 +80,8 @@ fn push(remote: &mut Remote, branch: &str) -> Result<()> {
 }
 
 fn pull(repo: &Repository, remote: &mut Remote, branch: &str) -> Result<()> {
-    let fetch_commit = do_fetch(&repo, &[branch], remote)?;
-    do_merge(&repo, &branch, fetch_commit)?;
+    let fetch_commit = do_fetch(repo, &[branch], remote)?;
+    do_merge(repo, branch, &fetch_commit)?;
     Ok(())
 }
 
@@ -222,43 +223,40 @@ fn normal_merge(
 fn do_merge<'a>(
     repo: &'a Repository,
     remote_branch: &str,
-    fetch_commit: git2::AnnotatedCommit<'a>,
+    fetch_commit: &git2::AnnotatedCommit<'a>,
 ) -> Result<(), git2::Error> {
     // 1. do a merge analysis
-    let analysis = repo.merge_analysis(&[&fetch_commit])?;
+    let analysis = repo.merge_analysis(&[fetch_commit])?;
 
     // 2. Do the appopriate merge
     if analysis.0.is_fast_forward() {
         println!("Doing a fast forward");
         // do a fast forward
         let refname = format!("refs/heads/{}", remote_branch);
-        match repo.find_reference(&refname) {
-            Ok(mut r) => {
-                fast_forward(repo, &mut r, &fetch_commit)?;
-            }
-            Err(_) => {
-                // The branch doesn't exist so just set the reference to the
-                // commit directly. Usually this is because you are pulling
-                // into an empty repository.
-                repo.reference(
-                    &refname,
-                    fetch_commit.id(),
-                    true,
-                    &format!("Setting {} to {}", remote_branch, fetch_commit.id()),
-                )?;
-                repo.set_head(&refname)?;
-                repo.checkout_head(Some(
-                    git2::build::CheckoutBuilder::default()
-                        .allow_conflicts(true)
-                        .conflict_style_merge(true)
-                        .force(),
-                ))?;
-            }
+        if let Ok(mut r) = repo.find_reference(&refname) {
+            fast_forward(repo, &mut r, fetch_commit)?;
+        } else {
+            // The branch doesn't exist so just set the reference to the
+            // commit directly. Usually this is because you are pulling
+            // into an empty repository.
+            repo.reference(
+                &refname,
+                fetch_commit.id(),
+                true,
+                &format!("Setting {} to {}", remote_branch, fetch_commit.id()),
+            )?;
+            repo.set_head(&refname)?;
+            repo.checkout_head(Some(
+                git2::build::CheckoutBuilder::default()
+                    .allow_conflicts(true)
+                    .conflict_style_merge(true)
+                    .force(),
+            ))?;
         };
     } else if analysis.0.is_normal() {
         // do a normal merge
         let head_commit = repo.reference_to_annotated_commit(&repo.head()?)?;
-        normal_merge(&repo, &head_commit, &fetch_commit)?;
+        normal_merge(repo, &head_commit, fetch_commit)?;
     } else {
         println!("Nothing to do...");
     }

@@ -3,6 +3,11 @@ name = "nodo-cli"
 version = "0.1.0"
 authors = ["Andrew Jeffery <dev@jeffas.io>"]
 edition = "2018"
+repository = "https://github.com/jeffa5/nodo"
+readme = "README.md"
+description = "A CLI frontend for Nodo"
+keywords = ["notes", "todos", "tasks","management"]
+categories = []
 
 [dependencies]
 nodo-core = { path = "../core" }

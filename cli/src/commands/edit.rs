@@ -27,30 +27,13 @@ impl Edit {
 
         if !nodo_path.exists() {
             debug!("Nodo doesn't exist yet");
-            self.create_nodo(&nodo_path)?
+            self.create_nodo(nodo_path)?
         }
 
         // create is designed for scripts so don't open an editor if specified
         if !self.create {
-            self.edit_nodo(nodo_path)?;
+            edit_nodo(nodo_path)?;
         }
-
-        Ok(())
-    }
-
-    fn edit_nodo(&self, path: &Path) -> Result<()> {
-        let editor = env::var("EDITOR")?;
-        info!("executing: '{} {}'", editor, path.display());
-
-        if !process::Command::new(editor).arg(&path).status()?.success() {
-            return Err(anyhow!("Error occurred when editing. Try running with more verbosity (-v) for more information."));
-        }
-
-        // format the just edited nodo
-        let mut buf = String::new();
-        File::read_to_string(&mut File::open(&path)?, &mut buf)?;
-        let nodo = Markdown::parse(&buf)?;
-        Markdown::render(&nodo, &mut File::create(&path)?)?;
 
         Ok(())
     }
@@ -71,4 +54,21 @@ impl Edit {
 
         Ok(())
     }
+}
+
+fn edit_nodo(path: &Path) -> Result<()> {
+    let editor = env::var("EDITOR")?;
+    info!("executing: '{} {}'", editor, path.display());
+
+    if !process::Command::new(editor).arg(&path).status()?.success() {
+        return Err(anyhow!("Error occurred when editing. Try running with more verbosity (-v) for more information."));
+    }
+
+    // format the just edited nodo
+    let mut buf = String::new();
+    File::read_to_string(&mut File::open(&path)?, &mut buf)?;
+    let nodo = Markdown::parse(&buf)?;
+    Markdown::render(&nodo, &mut File::create(&path)?)?;
+
+    Ok(())
 }

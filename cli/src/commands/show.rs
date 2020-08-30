@@ -5,7 +5,7 @@ use crate::{
 };
 use anyhow::Result;
 use clap::Clap;
-use colored::*;
+use colored::Colorize;
 use log::debug;
 use nodo_core::{Markdown, Parse};
 use std::{cmp::Ordering, fs, fs::File, io::Read, path::Path};
@@ -95,7 +95,7 @@ fn print_dir_name(path: &Path, depth: i32) -> Result<()> {
             match files.cmp(&1) {
                 Ordering::Greater => print!("{} files", files),
                 Ordering::Equal => print!("{} file", files),
-                _ => (),
+                Ordering::Less => {}
             }
             if files > 0 && directories > 0 {
                 print!(", ")
@@ -103,7 +103,7 @@ fn print_dir_name(path: &Path, depth: i32) -> Result<()> {
             match directories.cmp(&1) {
                 Ordering::Greater => print!("{} directories", directories),
                 Ordering::Equal => print!("{} directory", directories),
-                _ => (),
+                Ordering::Less => {}
             }
 
             print!("]");
@@ -124,7 +124,7 @@ fn print_dir(path: &Path, prefix: &str, depth: i32) -> Result<()> {
         let entry = entry?;
         let path = entry.path();
         if i == children_len - 1 {
-            print!("{}└─ ", prefix);
+            print!("{}\u{2514}\u{2500} ", prefix);
             if path.is_dir() {
                 print_dir_name(&path, depth)?;
                 print_dir(&path, &format!("{}   ", prefix), depth - 1)?
@@ -132,10 +132,10 @@ fn print_dir(path: &Path, prefix: &str, depth: i32) -> Result<()> {
                 print_nodo_summary(&path)?
             }
         } else {
-            print!("{}├─ ", prefix);
+            print!("{}\u{251c}\u{2500} ", prefix);
             if path.is_dir() {
                 print_dir_name(&path, depth)?;
-                print_dir(&path, &format!("{}│  ", prefix), depth - 1)?
+                print_dir(&path, &format!("{}\u{2502}  ", prefix), depth - 1)?
             } else {
                 print_nodo_summary(&path)?;
             }
@@ -157,7 +157,7 @@ fn print_nodo_summary(path: &Path) -> Result<()> {
     if task_count.total > 0 {
         let task_percentage = format!(
             "{}%",
-            (100_f64 * ((task_count.completed as f64) / (task_count.total as f64))).trunc()
+            (100_f64 * (f64::from(task_count.completed) / f64::from(task_count.total))).trunc()
         );
         print!(
             " [{}/{} ({})]",

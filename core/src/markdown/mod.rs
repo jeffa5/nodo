@@ -133,14 +133,18 @@ fn parse_list_items(p: &mut Peekable<Parser>) -> Result<Vec<ListItem>, ParseErro
                             blocks: parse_blocks(p)?,
                         })
                     }
-                    _ => items.push(ListItem {
+                    Some(_) => items.push(ListItem {
                         task: None,
                         blocks: parse_blocks(p)?,
                     }),
                 },
             },
             Event::End(_) => break,
-            Event::Text(_) | Event::Code(_) | Event::Html(_) => items.push(ListItem {
+            Event::Text(_)
+            | Event::Code(_)
+            | Event::Html(_)
+            | Event::SoftBreak
+            | Event::HardBreak => items.push(ListItem {
                 task: None,
                 blocks: parse_blocks(p)?,
             }),
@@ -149,10 +153,6 @@ fn parse_list_items(p: &mut Peekable<Parser>) -> Result<Vec<ListItem>, ParseErro
                     event: format!("{:?}", e),
                 })
             }
-            Event::SoftBreak | Event::HardBreak => items.push(ListItem {
-                task: None,
-                blocks: parse_blocks(p)?,
-            }),
             Event::Rule => continue,
             Event::TaskListMarker(b) => items.push(ListItem {
                 task: Some(b),
@@ -312,8 +312,7 @@ fn parse_text(p: &mut Peekable<Parser>) -> Result<String, ParseError> {
     };
 
     match p.next() {
-        None => Ok(ret),
-        Some(Event::End(_)) => Ok(ret),
+        None | Some(Event::End(_)) => Ok(ret),
         Some(e) => Err(ParseError::ExpectedEnd {
             event: format!("{:?}", e),
         }),
@@ -403,7 +402,7 @@ fn render_inlines<W: std::io::Write>(
         trace!("render_inlines: {:?}", item);
 
         match item {
-            Inline::Plain(s) => write!(w, "{}", s)?,
+            Inline::Plain(s) | Inline::Html(s) => write!(w, "{}", s)?,
             Inline::Emph(i) => {
                 write!(w, "*")?;
                 render_inlines(i, "", w)?;
@@ -422,7 +421,6 @@ fn render_inlines<W: std::io::Write>(
             }
             Inline::Link(n, l) => write!(w, "[{}]({})", n, l)?,
             Inline::Image(n, l) => write!(w, "![{}]({})", n, l)?,
-            Inline::Html(s) => write!(w, "{}", s)?,
             Inline::SoftBreak => {
                 writeln!(w)?;
                 write!(w, "{}", prefix)?

@@ -6,10 +6,11 @@ pub struct TaskCount {
 }
 
 impl Nodo {
+    #[must_use]
     pub fn count_tasks(&self) -> TaskCount {
         let mut completed = 0;
         let mut total = 0;
-        for block in self.blocks.iter() {
+        for block in &self.blocks {
             match block {
                 Block::List(_, items) => {
                     for item in items.iter() {
@@ -21,11 +22,11 @@ impl Nodo {
                         }
                     }
                 }
-                Block::Paragraph(_) => {}
-                Block::Heading(_, _) => {}
-                Block::Code(_, _) => {}
-                Block::Quote(_) => {}
-                Block::Rule => {}
+                Block::Paragraph(_)
+                | Block::Heading(_, _)
+                | Block::Code(_, _)
+                | Block::Quote(_)
+                | Block::Rule => {}
             }
         }
         TaskCount { completed, total }
