@@ -155,15 +155,20 @@ fn print_nodo_summary(path: &Path) -> Result<()> {
         user::file_name_string(&path.file_name().unwrap().to_string_lossy())
     );
     if task_count.total > 0 {
-        let task_count_string = format!("{}/{}", task_count.completed, task_count.total);
+        let task_percentage = format!(
+            "{}%",
+            (100_f64 * ((task_count.completed as f64) / (task_count.total as f64))).trunc()
+        );
         print!(
-            " [{}]",
+            " [{}/{} ({})]",
+            task_count.completed,
+            task_count.total,
             if task_count.completed == task_count.total {
-                task_count_string.green().bold()
+                task_percentage.green().bold()
             } else if task_count.completed > task_count.total / 2 {
-                task_count_string.yellow().bold()
+                task_percentage.yellow().bold()
             } else {
-                task_count_string.red().bold()
+                task_percentage.red().bold()
             }
         )
     }
