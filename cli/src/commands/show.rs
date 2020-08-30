@@ -6,9 +6,9 @@ use crate::{
 use anyhow::Result;
 use clap::Clap;
 use log::debug;
-use std::{fs, fs::File, path::Path};
+use std::{cmp::Ordering, fs, fs::File, path::Path};
 
-#[derive(Clap, Debug, Default)]
+#[derive(Clap, Debug)]
 pub struct Show {
     /// The target to edit
     #[clap(name = "TARGET")]
@@ -17,6 +17,20 @@ pub struct Show {
     /// Show all, including hidden dirs
     #[clap(short, long)]
     all: bool,
+
+    /// How many levels to show
+    #[clap(short, long, default_value = "1")]
+    depth: i32,
+}
+
+impl Default for Show {
+    fn default() -> Self {
+        Self {
+            target: None,
+            all: false,
+            depth: 1,
+        }
+    }
 }
 
 impl Show {
@@ -29,7 +43,7 @@ impl Show {
         );
         if target.exists() {
             if target.is_dir() {
-                self.print_tree(&target, self.target.is_none())
+                self.print_tree(&target, self.target.is_none(), self.depth)
             } else {
                 print_nodo(&target)
             }
@@ -38,7 +52,7 @@ impl Show {
         }
     }
 
-    fn print_tree(&self, target: &Path, is_root: bool) -> Result<()> {
+    fn print_tree(&self, target: &Path, is_root: bool, depth: i32) -> Result<()> {
         debug!("Printing tree from root {}", target.display());
         for entry in fs::read_dir(target)? {
             let entry = entry?;
@@ -50,11 +64,8 @@ impl Show {
             }
             let path = entry.path();
             if path.is_dir() {
-                println!(
-                    "{}",
-                    user::dir_name_string(&entry.file_name().to_string_lossy())
-                );
-                print_dir(&path, "")?
+                print_dir_name(&path, depth)?;
+                print_dir(&path, "", depth - 1)?
             } else {
                 print_nodo_summary(&path)?
             }
@@ -64,7 +75,46 @@ impl Show {
     }
 }
 
-fn print_dir(path: &Path, prefix: &str) -> Result<()> {
+fn print_dir_name(path: &Path, depth: i32) -> Result<()> {
+    print!(
+        "{}",
+        user::dir_name_string(&path.file_name().unwrap().to_string_lossy())
+    );
+    if depth == 1 {
+        let (files, directories) = fs::read_dir(&path)?.fold((0, 0), |(f, d), e| {
+            if e.unwrap().path().is_dir() {
+                (f, d + 1)
+            } else {
+                (f + 1, d)
+            }
+        });
+        if files > 0 || directories > 0 {
+            print!(" [");
+            match files.cmp(&1) {
+                Ordering::Greater => print!("{} files", files),
+                Ordering::Equal => print!("{} file", files),
+                _ => (),
+            }
+            if files > 0 && directories > 0 {
+                print!(", ")
+            }
+            match directories.cmp(&1) {
+                Ordering::Greater => print!("{} directories", directories),
+                Ordering::Equal => print!("{} directory", directories),
+                _ => (),
+            }
+
+            print!("]");
+        }
+    }
+    println!();
+    Ok(())
+}
+
+fn print_dir(path: &Path, prefix: &str, depth: i32) -> Result<()> {
+    if depth == 0 {
+        return Ok(());
+    }
     let children: Vec<_> = fs::read_dir(path)?.collect();
     let children_len = children.len();
 
@@ -74,22 +124,16 @@ fn print_dir(path: &Path, prefix: &str) -> Result<()> {
         if i == children_len - 1 {
             print!("{}└─ ", prefix);
             if path.is_dir() {
-                println!(
-                    "{}",
-                    user::dir_name_string(&entry.file_name().to_string_lossy())
-                );
-                print_dir(&path, &format!("{}   ", prefix))?
+                print_dir_name(&path, depth)?;
+                print_dir(&path, &format!("{}   ", prefix), depth - 1)?
             } else {
                 print_nodo_summary(&path)?
             }
         } else {
             print!("{}├─ ", prefix);
             if path.is_dir() {
-                println!(
-                    "{}",
-                    user::dir_name_string(&entry.file_name().to_string_lossy())
-                );
-                print_dir(&path, &format!("{}│  ", prefix))?
+                print_dir_name(&path, depth)?;
+                print_dir(&path, &format!("{}│  ", prefix), depth - 1)?
             } else {
                 print_nodo_summary(&path)?;
             }
