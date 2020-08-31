@@ -3,21 +3,21 @@ use crate::{
     utils::{target::Target, user},
 };
 use anyhow::{ensure, Result};
-use clap::Clap;
 use log::{debug, info};
 use nodo_core::{Markdown, Parse, Render};
 use std::{env, fs, fs::File, io::Read, path::Path, process};
+use structopt::StructOpt;
 
-#[derive(Clap, Debug)]
+#[derive(StructOpt, Debug)]
 pub struct Edit {
     /// The target to edit
-    #[clap(name = "TARGET")]
+    #[structopt(name = "TARGET")]
     target: Target,
 
     /// Create the target if it doesn't exist without a prompt
     ///
     /// This will prevent opening of the editor, designed for scripts
-    #[clap(short, long)]
+    #[structopt(short, long)]
     create: bool,
 }
 

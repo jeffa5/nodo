@@ -11,7 +11,8 @@ categories = []
 
 [dependencies]
 nodo-core = { path = "../core" }
-clap = "3.0.0-beta.1"
+clap = "2.33.3"
+structopt = "0.3.17"
 anyhow = "1.0.32"
 log = "0.4.11"
 simple_logger = "1.6.0"

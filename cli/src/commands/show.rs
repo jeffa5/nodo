@@ -4,24 +4,24 @@ use crate::{
     utils::{target::Target, user},
 };
 use anyhow::{ensure, Result};
-use clap::Clap;
 use colored::Colorize;
 use log::debug;
 use nodo_core::{Markdown, Parse};
 use std::{cmp::Ordering, fs, fs::File, io::Read, path::Path};
+use structopt::StructOpt;
 
-#[derive(Clap, Debug)]
+#[derive(StructOpt, Debug)]
 pub struct Show {
     /// The target to edit
-    #[clap(name = "TARGET")]
+    #[structopt(name = "TARGET")]
     target: Option<Target>,
 
     /// Show all, including hidden dirs
-    #[clap(short, long)]
+    #[structopt(short, long)]
     all: bool,
 
     /// How many levels to show
-    #[clap(short, long, default_value = "1")]
+    #[structopt(short, long, default_value = "1")]
     depth: i32,
 }
 

@@ -1,12 +1,12 @@
 use crate::{commands::GlobalOpts, utils::user};
 use anyhow::{bail, ensure, Result};
-use clap::Clap;
 use git2::{Cred, ErrorCode, Remote, Repository};
 use log::{debug, info};
 use std::{io, io::Write, path::Path};
+use structopt::StructOpt;
 
-#[derive(Clap, Debug)]
-pub struct Sync;
+#[derive(StructOpt, Debug)]
+pub struct Sync {}
 
 impl Sync {
     #[allow(clippy::unused_self)]

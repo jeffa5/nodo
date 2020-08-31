@@ -1,25 +1,26 @@
-use clap::Clap;
 use lazy_static::lazy_static;
 use std::path::PathBuf;
+use structopt::StructOpt;
 
 mod archive;
+mod completions;
 mod edit;
 mod r#move;
 mod remove;
 pub mod show;
 mod sync;
 
-#[derive(Clap, Debug)]
-#[clap(name = "nodo")]
+#[derive(StructOpt, Debug)]
+#[structopt(name = "nodo")]
 pub struct Opts {
     /// Change the verbosity, repeat for higher levels
-    #[clap(short, long, parse(from_occurrences), global = true)]
+    #[structopt(short, long, parse(from_occurrences), global = true)]
     pub verbose: u32,
 
-    #[clap(flatten)]
+    #[structopt(flatten)]
     pub globals: GlobalOpts,
 
-    #[clap(subcommand)]
+    #[structopt(subcommand)]
     pub subcommand: Option<SubCommand>,
 }
 
@@ -27,14 +28,14 @@ lazy_static! {
     static ref DATA_DIR: String = dirs::data_dir().unwrap().join("nodo").display().to_string();
 }
 
-#[derive(Clap, Debug)]
+#[derive(StructOpt, Debug)]
 pub struct GlobalOpts {
     /// The root directory for storing nodos
-    #[clap(long, default_value = &DATA_DIR, env("NODO_ROOT"), global = true)]
+    #[structopt(long, default_value = &DATA_DIR, env("NODO_ROOT"), global = true)]
     pub root: PathBuf,
 }
 
-#[derive(Clap, Debug)]
+#[derive(StructOpt, Debug)]
 pub enum SubCommand {
     /// Edit an existing nodo, or create a new one
     Edit(edit::Edit),
@@ -53,4 +54,7 @@ pub enum SubCommand {
 
     /// Sync the nodo repository
     Sync(sync::Sync),
+
+    /// Generate completions for the given shell
+    Completions(completions::Completions),
 }

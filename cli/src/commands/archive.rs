@@ -3,13 +3,13 @@ use crate::{
     utils::{target::Target, user},
 };
 use anyhow::{ensure, Result};
-use clap::Clap;
 use std::{fs, path::Path};
+use structopt::StructOpt;
 
-#[derive(Clap, Debug)]
+#[derive(StructOpt, Debug)]
 pub struct Archive {
     /// The target to archive
-    #[clap(name = "TARGET")]
+    #[structopt(name = "TARGET")]
     target: Target,
 }
 

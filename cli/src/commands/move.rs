@@ -3,17 +3,17 @@ use crate::{
     utils::{target::Target, user},
 };
 use anyhow::{ensure, Result};
-use clap::Clap;
 use std::fs;
+use structopt::StructOpt;
 
-#[derive(Clap, Debug)]
+#[derive(StructOpt, Debug)]
 pub struct Move {
     /// The source to move
-    #[clap(name = "SOURCE")]
+    #[structopt(name = "SOURCE")]
     source: Target,
 
     /// The destination to move the source to
-    #[clap(name = "DESTINATION")]
+    #[structopt(name = "DESTINATION")]
     destination: Target,
 }
 

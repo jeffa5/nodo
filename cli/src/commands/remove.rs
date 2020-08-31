@@ -3,17 +3,17 @@ use crate::{
     utils::{target::Target, user},
 };
 use anyhow::{bail, Result};
-use clap::Clap;
 use std::fs;
+use structopt::StructOpt;
 
-#[derive(Clap, Debug)]
+#[derive(StructOpt, Debug)]
 pub struct Remove {
     /// The target to remove
-    #[clap(name = "TARGET")]
+    #[structopt(name = "TARGET")]
     target: Target,
 
     /// Force the removal of the target
-    #[clap(short, long)]
+    #[structopt(short, long)]
     force: bool,
 }
 

@@ -6,12 +6,12 @@ mod commands;
 mod utils;
 
 use anyhow::Result;
-use clap::Clap;
 use commands::{show::Show, Opts, SubCommand};
 use log::{info, Level};
+use structopt::StructOpt;
 
 fn main() -> Result<()> {
-    let opts = Opts::parse();
+    let opts = Opts::from_args();
 
     let log_level = match opts.verbose {
         0 => None,
@@ -37,6 +37,7 @@ fn main() -> Result<()> {
             SubCommand::Move(m) => m.run(&opts.globals),
             SubCommand::Archive(a) => a.run(&opts.globals),
             SubCommand::Sync(s) => s.run(&opts.globals),
+            SubCommand::Completions(c) => c.run(),
         },
     }
 }
