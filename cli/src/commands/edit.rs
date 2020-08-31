@@ -40,7 +40,11 @@ impl Edit {
 
     fn create_nodo(&self, path: &Path) -> Result<()> {
         ensure!(
-            self.create || user::confirm("Target not found, would you like to create it?")?,
+            self.create
+                || user::confirm(&format!(
+                    "{} not found, would you like to create it?",
+                    user::file_name_string(self.target.to_string())
+                ))?,
             "Nodo not created"
         );
         if let Some(p) = path.parent() {
