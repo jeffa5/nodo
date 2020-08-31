@@ -55,8 +55,7 @@ impl Show {
 
     fn print_tree(&self, target: &Path, is_root: bool, depth: i32) -> Result<()> {
         debug!("Printing tree from root {}", target.display());
-        for entry in fs::read_dir(target)? {
-            let entry = entry?;
+        for entry in read_dir_sorted(target)? {
             if entry.file_name().to_string_lossy() == ".git" {
                 continue;
             }
@@ -74,6 +73,20 @@ impl Show {
 
         Ok(())
     }
+}
+
+fn read_dir_sorted(path: &Path) -> Result<Vec<fs::DirEntry>> {
+    let mut entries = Vec::new();
+    for entry in fs::read_dir(path)? {
+        entries.push(entry?)
+    }
+
+    entries.sort_by_key(|e| {
+        let path = e.path();
+        (path.is_dir(), path)
+    });
+
+    Ok(entries)
 }
 
 fn print_dir_name(path: &Path, depth: i32) -> Result<()> {
@@ -116,11 +129,10 @@ fn print_dir(path: &Path, prefix: &str, depth: i32) -> Result<()> {
     if depth == 0 {
         return Ok(());
     }
-    let children: Vec<_> = fs::read_dir(path)?.collect();
+    let children = read_dir_sorted(path)?;
     let children_len = children.len();
 
     for (i, entry) in children.into_iter().enumerate() {
-        let entry = entry?;
         let path = entry.path();
         if i == children_len - 1 {
             print!("{}\u{2514}\u{2500} ", prefix);
