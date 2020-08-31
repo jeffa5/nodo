@@ -30,7 +30,7 @@ lazy_static! {
 #[derive(Clap, Debug)]
 pub struct GlobalOpts {
     /// The root directory for storing nodos
-    #[clap(long, default_value = &DATA_DIR)]
+    #[clap(long, default_value = &DATA_DIR, env("NODO_ROOT"), global = true)]
     pub root: PathBuf,
 }
 
