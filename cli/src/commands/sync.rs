@@ -22,8 +22,10 @@ impl Sync {
         let mut remote = repo.find_remote("origin")?;
         let branch = "master";
 
+        println!("Pulling latest from remote");
         pull(&repo, &mut remote, branch)?;
 
+        println!("Pushing our changes up");
         push(&mut remote, branch)?;
 
         Ok(())
@@ -45,24 +47,13 @@ fn init_repo(root: &Path) -> Result<Repository> {
 fn push(remote: &mut Remote, branch: &str) -> Result<()> {
     let mut cb = git2::RemoteCallbacks::new();
     set_credentials_callback(&mut cb);
-    cb.transfer_progress(|stats| {
-        if stats.received_objects() == stats.total_objects() {
-            println!(
-                "Resolving deltas {}/{}\r",
-                stats.indexed_deltas(),
-                stats.total_deltas()
-            );
-        } else if stats.total_objects() > 0 {
-            println!(
-                "Received {}/{} objects ({}) in {} bytes\r",
-                stats.received_objects(),
-                stats.total_objects(),
-                stats.indexed_objects(),
-                stats.received_bytes()
-            );
+
+    cb.push_update_reference(|ref_name, status_message| {
+        match status_message {
+            None => println!("Pushed {}", ref_name),
+            Some(s) => println!("Error pushing {}: {}", ref_name, s),
         }
-        io::stdout().lock().flush().unwrap();
-        true
+        Ok(())
     });
 
     let mut opts = git2::PushOptions::new();
@@ -70,8 +61,10 @@ fn push(remote: &mut Remote, branch: &str) -> Result<()> {
     info!("Pushing changes to {}", remote.name().unwrap());
     remote.push(
         &[format!(
-            "refs/heads/{}:refs/remotes/origin/{}",
-            branch, branch
+            "refs/heads/{}:refs/remotes/{}/{}",
+            branch,
+            remote.name().unwrap_or("origin"),
+            branch
         )],
         Some(&mut opts),
     )?;
@@ -109,7 +102,6 @@ fn do_fetch<'a>(
 
     set_credentials_callback(&mut cb);
 
-    // Print out our transfer progress.
     cb.transfer_progress(|stats| {
         if stats.received_objects() == stats.total_objects() {
             print!(
@@ -134,27 +126,7 @@ fn do_fetch<'a>(
     fo.remote_callbacks(cb);
     info!("Fetching {} for repo", remote.name().unwrap());
     remote.fetch(refs, Some(&mut fo), None)?;
-    debug!("Fetch complete");
-
-    // If there are local objects (we got a thin pack), then tell the user
-    // how many objects we saved from having to cross the network.
-    let stats = remote.stats();
-    if stats.local_objects() > 0 {
-        println!(
-            "\rReceived {}/{} objects in {} bytes (used {} local objects)",
-            stats.indexed_objects(),
-            stats.total_objects(),
-            stats.received_bytes(),
-            stats.local_objects()
-        );
-    } else {
-        println!(
-            "\rReceived {}/{} objects in {} bytes",
-            stats.indexed_objects(),
-            stats.total_objects(),
-            stats.received_bytes()
-        );
-    }
+    info!("Fetch complete");
 
     let fetch_head = repo.find_reference("FETCH_HEAD")?;
     Ok(repo.reference_to_annotated_commit(&fetch_head)?)
@@ -258,7 +230,7 @@ fn do_merge<'a>(
         let head_commit = repo.reference_to_annotated_commit(&repo.head()?)?;
         normal_merge(repo, &head_commit, fetch_commit)?;
     } else {
-        println!("Nothing to do...");
+        println!("Already have latest from remote");
     }
     Ok(())
 }
