@@ -5,9 +5,10 @@
 mod commands;
 mod utils;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use commands::{show::Show, Opts, SubCommand};
 use log::{info, Level};
+use std::fs;
 use structopt::StructOpt;
 
 fn main() -> Result<()> {
@@ -27,6 +28,11 @@ fn main() -> Result<()> {
     }
 
     info!("raw options: {:?}", opts);
+
+    if !opts.globals.root.exists() {
+        info!("Creating root directory {}", opts.globals.root.display());
+        fs::create_dir_all(&opts.globals.root).context("Failed to create root directory")?
+    }
 
     match opts.subcommand {
         None => Show::default().run(&opts.globals),
