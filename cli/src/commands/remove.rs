@@ -2,7 +2,7 @@ use crate::{
     commands::GlobalOpts,
     utils::{target::Target, user},
 };
-use anyhow::{anyhow, Result};
+use anyhow::{bail, Result};
 use clap::Clap;
 use std::fs;
 
@@ -37,7 +37,7 @@ impl Remove {
         }
         // allow a forceful removal to target a non-existant entry
         else if !self.force {
-            return Err(anyhow!("Target not found"));
+            bail!("Target not found");
         }
 
         Ok(())

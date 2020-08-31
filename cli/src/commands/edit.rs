@@ -2,7 +2,7 @@ use crate::{
     commands::GlobalOpts,
     utils::{target::Target, user},
 };
-use anyhow::{anyhow, Result};
+use anyhow::{ensure, Result};
 use clap::Clap;
 use log::{debug, info};
 use nodo_core::{Markdown, Parse, Render};
@@ -39,18 +39,18 @@ impl Edit {
     }
 
     fn create_nodo(&self, path: &Path) -> Result<()> {
-        if self.create || user::confirm("Target not found, would you like to create it?")? {
-            if let Some(p) = path.parent() {
-                fs::create_dir_all(p)?;
-            }
-            File::create(path)?;
-            println!(
-                "Created {}",
-                user::file_name_string(path.display().to_string())
-            );
-        } else {
-            return Err(anyhow!("Nodo not created"));
+        ensure!(
+            self.create || user::confirm("Target not found, would you like to create it?")?,
+            "Nodo not created"
+        );
+        if let Some(p) = path.parent() {
+            fs::create_dir_all(p)?;
         }
+        File::create(path)?;
+        println!(
+            "Created {}",
+            user::file_name_string(path.display().to_string())
+        );
 
         Ok(())
     }
@@ -60,9 +60,10 @@ fn edit_nodo(path: &Path) -> Result<()> {
     let editor = env::var("EDITOR")?;
     info!("executing: '{} {}'", editor, path.display());
 
-    if !process::Command::new(editor).arg(&path).status()?.success() {
-        return Err(anyhow!("Error occurred when editing. Try running with more verbosity (-v) for more information."));
-    }
+    ensure!(
+        process::Command::new(editor).arg(&path).status()?.success(),
+        "Error occurred when editing. Try running with more verbosity (-v) for more information."
+    );
 
     // format the just edited nodo
     let mut buf = String::new();

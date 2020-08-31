@@ -3,7 +3,7 @@ use crate::{
     utils,
     utils::{target::Target, user},
 };
-use anyhow::Result;
+use anyhow::{ensure, Result};
 use clap::Clap;
 use colored::Colorize;
 use log::debug;
@@ -43,14 +43,13 @@ impl Show {
                 .unwrap_or(&Target::default())
                 .build_path(&g.root),
         );
-        if target.exists() {
-            if target.is_dir() {
-                self.print_tree(&target, self.target.is_none(), self.depth)
-            } else {
-                print_nodo(&target)
-            }
+
+        ensure!(target.exists(), "Target does not exist");
+
+        if target.is_dir() {
+            self.print_tree(&target, self.target.is_none(), self.depth)
         } else {
-            Err(anyhow::anyhow!("Target does not exist!"))
+            print_nodo(&target)
         }
     }
 

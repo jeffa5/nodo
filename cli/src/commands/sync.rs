@@ -1,5 +1,5 @@
 use crate::{commands::GlobalOpts, utils::user};
-use anyhow::{anyhow, Result};
+use anyhow::{bail, ensure, Result};
 use clap::Clap;
 use git2::{Cred, ErrorCode, Remote, Repository};
 use log::{debug, info};
@@ -15,7 +15,7 @@ impl Sync {
             Ok(repo) => repo,
             Err(err) => match err.code() {
                 ErrorCode::NotFound => init_repo(&g.root)?,
-                _ => return Err(err.into()),
+                _ => bail!(err),
             },
         };
 
@@ -31,15 +31,15 @@ impl Sync {
 }
 
 fn init_repo(root: &Path) -> Result<Repository> {
-    if user::confirm("Repo not configured with git, would you like to initialise one?")? {
-        let remote_url = user::input("Remote URL to sync with", None)?;
-        let repo = Repository::init(root)?;
-        repo.remote("origin", &remote_url)?;
-        println!("Repo initialised");
-        Ok(repo)
-    } else {
-        Err(anyhow!("Git repo not configured and not initialising one"))
-    }
+    ensure!(
+        user::confirm("Repo not configured with git, would you like to initialise one?")?,
+        "Git repo not configured and not initialising one"
+    );
+    let remote_url = user::input("Remote URL to sync with", None)?;
+    let repo = Repository::init(root)?;
+    repo.remote("origin", &remote_url)?;
+    println!("Repo initialised");
+    Ok(repo)
 }
 
 fn push(remote: &mut Remote, branch: &str) -> Result<()> {
