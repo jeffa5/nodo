@@ -1,5 +1,6 @@
 #![feature(never_type)]
-#![warn(clippy::pedantic, clippy::nursery, clippy::cargo)]
+#![warn(clippy::pedantic, clippy::nursery)]
+// clippy::cargo
 
 mod commands;
 mod utils;
