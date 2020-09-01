@@ -1,6 +1,6 @@
 use crate::{
     commands::GlobalOpts,
-    utils::{target::Target, user},
+    utils::{git, target::Target, user},
 };
 use anyhow::{ensure, Result};
 use std::fs;
@@ -31,10 +31,13 @@ impl Move {
             "Destination already exists and is a file"
         );
 
+        let mut repo = git::Repo::open(&g.root)?;
+
         if source_path.is_dir() {
             if destination_path.is_dir() {
                 let dest = destination_path.join(source_path.file_name().unwrap());
                 fs::rename(source_path, &dest)?;
+                repo.add_path(source_path)?.add_path(&dest)?;
                 println!(
                     "Moved dir {} to {}",
                     user::dir_name_string(source_path.display().to_string()),
@@ -46,6 +49,7 @@ impl Move {
                 fs::create_dir_all(destination_path.parent().unwrap())?;
                 destination_path.set_extension("");
                 fs::rename(source_path, &destination_path)?;
+                repo.add_path(source_path)?.add_path(&destination_path)?;
                 println!(
                     "Moved dir {} to {}",
                     user::dir_name_string(source_path.display().to_string()),
@@ -55,6 +59,7 @@ impl Move {
         } else if destination_path.is_dir() {
             let dest = destination_path.join(source_path.file_name().unwrap());
             fs::rename(source_path, &dest)?;
+            repo.add_path(source_path)?.add_path(&dest)?;
             println!(
                 "Moved file {} to {}",
                 user::file_name_string(source_path.display().to_string()),
@@ -63,6 +68,7 @@ impl Move {
         } else {
             fs::create_dir_all(destination_path.parent().unwrap())?;
             fs::rename(source_path, &destination_path)?;
+            repo.add_path(source_path)?.add_path(&destination_path)?;
             println!(
                 "Moved file {} to {}",
                 user::file_name_string(source_path.display().to_string()),
