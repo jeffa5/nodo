@@ -1,8 +1,11 @@
-use crate::{commands::GlobalOpts, utils::user};
-use anyhow::{bail, ensure, Result};
-use git2::{Cred, ErrorCode, Remote, Repository};
+use crate::{
+    commands::GlobalOpts,
+    utils::{git, user},
+};
+use anyhow::{bail, Result};
+use git2::{Cred, Remote, Repository};
 use log::{debug, info};
-use std::{io, io::Write, path::Path};
+use std::{io, io::Write};
 use structopt::StructOpt;
 
 #[derive(StructOpt, Debug)]
@@ -11,37 +14,40 @@ pub struct Sync {}
 impl Sync {
     #[allow(clippy::unused_self)]
     pub fn run(&self, g: &GlobalOpts) -> Result<()> {
-        let repo = match Repository::open(&g.root) {
-            Ok(repo) => repo,
-            Err(err) => match err.code() {
-                ErrorCode::NotFound => init_repo(&g.root)?,
-                _ => bail!(err),
-            },
-        };
+        let mut repo = git::Repo::open(&g.root)?;
 
-        let mut remote = repo.find_remote("origin")?;
+        #[allow(unused_assignments)]
+        let mut statuses_clean = false;
+        {
+            let statuses = repo.repo.statuses(None)?;
+            statuses_clean = statuses.is_empty();
+            if !statuses.is_empty() {
+                println!("Found the following dirty statuses:");
+                for s in statuses.iter() {
+                    println!("{} {:?}", s.path().unwrap(), s.status())
+                }
+            }
+        }
+
+        if !statuses_clean {
+            if user::confirm("Would you like to add and commit all of these before syncing?")? {
+                repo.add_all()?.commit()?
+            } else {
+                bail!("Not syncing a dirty repo")
+            }
+        }
+
+        let mut remote = repo.repo.find_remote("origin")?;
         let branch = "master";
 
         println!("Pulling latest from remote");
-        pull(&repo, &mut remote, branch)?;
+        pull(&repo.repo, &mut remote, branch)?;
 
         println!("Pushing our changes up");
         push(&mut remote, branch)?;
 
         Ok(())
     }
-}
-
-fn init_repo(root: &Path) -> Result<Repository> {
-    ensure!(
-        user::confirm("Repo not configured with git, would you like to initialise one?")?,
-        "Git repo not configured and not initialising one"
-    );
-    let remote_url = user::input("Remote URL to sync with", None)?;
-    let repo = Repository::init(root)?;
-    repo.remote("origin", &remote_url)?;
-    println!("Repo initialised");
-    Ok(repo)
 }
 
 fn push(remote: &mut Remote, branch: &str) -> Result<()> {

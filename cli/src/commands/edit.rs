@@ -1,6 +1,6 @@
 use crate::{
     commands::GlobalOpts,
-    utils::{target::Target, user},
+    utils::{git, target::Target, user},
 };
 use anyhow::{ensure, Result};
 use log::{debug, info};
@@ -32,7 +32,7 @@ impl Edit {
 
         // create is designed for scripts so don't open an editor if specified
         if !self.create {
-            edit_nodo(nodo_path)?;
+            edit_nodo(nodo_path, &g.root)?;
         }
 
         Ok(())
@@ -60,7 +60,7 @@ impl Edit {
     }
 }
 
-fn edit_nodo(path: &Path) -> Result<()> {
+fn edit_nodo(path: &Path, root: &Path) -> Result<()> {
     let editor = env::var("EDITOR")?;
     info!("executing: '{} {}'", editor, path.display());
 
@@ -75,5 +75,11 @@ fn edit_nodo(path: &Path) -> Result<()> {
     let nodo = Markdown::parse(&buf)?;
     Markdown::render(&nodo, &mut File::create(&path)?)?;
 
+    commit_changes(path, root)?;
+
     Ok(())
+}
+
+fn commit_changes(path: &Path, root: &Path) -> Result<()> {
+    git::Repo::open(root)?.add_path(path)?.commit()
 }
