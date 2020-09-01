@@ -1,6 +1,6 @@
 use crate::{
     commands::GlobalOpts,
-    utils::{target::Target, user},
+    utils::{git, target::Target, user},
 };
 use anyhow::{ensure, Result};
 use std::{fs, path::Path};
@@ -24,8 +24,11 @@ impl Archive {
             .root
             .join(Path::new("archive").join(&source_path.strip_prefix(&g.root)?));
 
+        let mut repo = git::Repo::open(&g.root)?;
+
         fs::create_dir_all(archived_path.parent().unwrap())?;
-        fs::rename(&source_path, archived_path)?;
+        fs::rename(&source_path, &archived_path)?;
+        repo.add_path(&source_path)?.add_path(&archived_path)?;
 
         if source_is_dir {
             println!(
