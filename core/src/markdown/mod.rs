@@ -335,6 +335,7 @@ fn render_blocks<W: std::io::Write>(
     bs: &[Block],
     prefix: &str,
     w: &mut W,
+    compact: bool,
 ) -> Result<(), std::io::Error> {
     for (i, b) in bs.iter().enumerate() {
         trace!("render_blocks: {:?}", b);
@@ -348,14 +349,23 @@ fn render_blocks<W: std::io::Write>(
             }
             Block::Code(lang, content) => write!(w, "{}```{}\n{}```", prefix, lang, content)?,
             Block::Quote(blocks) => {
-                write!(w, "{}> ", prefix)?;
-                render_blocks(blocks, prefix, w)?
+                let prefix = format!("{}> ", prefix);
+                write!(w, "{}", prefix)?;
+                render_blocks(blocks, &prefix, w, compact)?
             }
             Block::List(ty, items) => render_list_items(*ty, items, prefix, w)?,
         }
 
         if i != bs.len() - 1 {
-            write!(w, "\n\n{}", prefix)?
+            if compact {
+                if let Some(Block::List(_, _)) = bs.get(i + 1) {
+                    write!(w, "\n{}", prefix)?
+                } else {
+                    write!(w, "\n\n{}", prefix)?
+                }
+            } else {
+                write!(w, "\n\n{}", prefix)?
+            }
         }
     }
     Ok(())
@@ -383,7 +393,7 @@ fn render_list_items<W: std::io::Write>(
             }
         }
 
-        render_blocks(&item.blocks, &format!("{}{}", prefix, INDENT), w)?;
+        render_blocks(&item.blocks, &format!("{}{}", prefix, INDENT), w, true)?;
 
         if i != is.len() - 1 {
             writeln!(w)?
@@ -438,7 +448,10 @@ impl Render for Markdown {
     type RenderError = RenderError;
 
     fn render<W: std::io::Write>(n: &Nodo, w: &mut W) -> Result<(), Self::RenderError> {
-        render_blocks(&n.blocks, "", w)?;
+        render_blocks(&n.blocks, "", w, false)?;
+        if !n.blocks.is_empty() {
+            writeln!(w)?;
+        }
         Ok(())
     }
 }
@@ -447,6 +460,27 @@ impl Render for Markdown {
 mod tests {
     use super::*;
     use pretty_assertions::assert_eq;
+    use std::fmt;
+
+    /// Wrapper around string slice that makes debug output `{:?}` to print string same way as `{}`.
+    /// Used in different `assert*!` macros in combination with `pretty_assertions` crate to make
+    /// test failures to show nice diffs.
+    #[derive(PartialEq, Eq)]
+    #[doc(hidden)]
+    pub struct PrettyString<'a>(pub &'a str);
+
+    /// Make diff to display string as multi-line string
+    impl<'a> fmt::Debug for PrettyString<'a> {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            f.write_str(self.0)
+        }
+    }
+
+    macro_rules! assert_eq {
+        ($left:expr, $right:expr) => {
+            pretty_assertions::assert_eq!(PrettyString($left), PrettyString($right));
+        };
+    }
 
     #[test]
     fn parse_and_write() {
@@ -456,14 +490,12 @@ a + b
 
 - a list
 - more list
-
     - nested list item
 
 a split
 paragraph
 
 1. a numbered list
-
     1. a sub numbered list
 2. a second number
 
@@ -472,7 +504,6 @@ paragraph
 - [x] an complete task list
 
     paragraph
-
     - [ ] a sub task
 
         another paragraph
@@ -481,12 +512,16 @@ paragraph
 some code {
     echo
 }
-```";
+```
+
+> quote
+> multi lines
+";
         let nodo = Markdown::parse(md).unwrap();
 
         let mut out = Vec::new();
         Markdown::render(&nodo, &mut out).unwrap();
 
-        assert_eq!(md, String::from_utf8(out).unwrap(), "{:?}", nodo)
+        assert_eq!(md, &String::from_utf8(out).unwrap())
     }
 }
