@@ -9,8 +9,14 @@ pub struct Repo {
 
 impl Repo {
     pub fn open(root: &Path) -> Result<Self> {
-        match Repository::open(root) {
-            Ok(repo) => Ok(Self { repo }),
+        match Repository::discover(root) {
+            Ok(repo) => {
+                if repo.path().starts_with(root) {
+                    Ok(Self { repo })
+                } else {
+                    bail!("No repo found within the given root")
+                }
+            }
             Err(err) => match err.code() {
                 ErrorCode::NotFound => Self::initialise(root),
                 _ => bail!(err),
@@ -18,7 +24,7 @@ impl Repo {
         }
     }
 
-    pub fn initialise(root: &Path) -> Result<Self> {
+    fn initialise(root: &Path) -> Result<Self> {
         ensure!(
             user::confirm("Repo not configured with git, would you like to initialise one?")?,
             "Git repo not configured and not initialising one"
