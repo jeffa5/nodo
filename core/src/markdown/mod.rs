@@ -206,7 +206,27 @@ fn parse_tight_paragraph(p: &mut Peekable<Parser>) -> Result<Vec<Inline>, ParseE
                     inlines.push(Inline::Image(s, l))
                 }
             },
-            Event::End(_) => break,
+            Event::End(tag) => match tag {
+                Tag::Emphasis
+                | Tag::Strikethrough
+                | Tag::Strong
+                | Tag::Link(_, _, _)
+                | Tag::Image(_, _, _) => {
+                    p.next().unwrap();
+                    break;
+                }
+                Tag::Paragraph
+                | Tag::Heading(_)
+                | Tag::BlockQuote
+                | Tag::CodeBlock(_)
+                | Tag::List(_)
+                | Tag::FootnoteDefinition(_)
+                | Tag::Item
+                | Tag::Table(_)
+                | Tag::TableHead
+                | Tag::TableRow
+                | Tag::TableCell => break,
+            },
             Event::Text(s) => {
                 let s = s.to_string();
                 p.next().unwrap();
@@ -489,8 +509,8 @@ mod tests {
 a + b
 
 - a list
-- more list
-    - nested list item
+- more *list*, test
+    - nested list *item* with *emphasis*
 
 a split
 paragraph
