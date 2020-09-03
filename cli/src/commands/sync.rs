@@ -16,18 +16,16 @@ impl Sync {
     pub fn run(&self, g: &GlobalOpts) -> Result<()> {
         let mut repo = git::Repo::open(&g.root)?;
 
-        #[allow(unused_assignments)]
-        let mut statuses_clean = false;
-        {
+        let statuses_clean = {
             let statuses = repo.repo.statuses(None)?;
-            statuses_clean = statuses.is_empty();
             if !statuses.is_empty() {
                 println!("Found the following dirty statuses:");
                 for s in statuses.iter() {
                     println!("{} {:?}", s.path().unwrap(), s.status())
                 }
             }
-        }
+            statuses.is_empty()
+        };
 
         if !statuses_clean {
             if user::confirm("Would you like to add and commit all of these before syncing?")? {
