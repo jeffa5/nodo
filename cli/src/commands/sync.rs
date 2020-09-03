@@ -3,6 +3,7 @@ use crate::{
     utils::{git, user},
 };
 use anyhow::{bail, Result};
+use colored::Colorize;
 use git2::{Cred, Remote, Repository};
 use log::{debug, info};
 use std::{io, io::Write};
@@ -77,8 +78,28 @@ fn push(remote: &mut Remote, branch: &str) -> Result<()> {
 }
 
 fn pull(repo: &Repository, remote: &mut Remote, branch: &str) -> Result<()> {
-    let fetch_commit = do_fetch(repo, &[branch], remote)?;
-    do_merge(repo, branch, &fetch_commit)?;
+    {
+        let fetch_commit = do_fetch(repo, &[branch], remote)?;
+
+        do_merge(repo, branch, &fetch_commit)?;
+    }
+
+    let head_tree = repo.head()?.peel_to_tree()?;
+    let remote_tree = repo
+        .find_reference(&format!(
+            "refs/remotes/{}/{}",
+            remote.name().unwrap(),
+            branch
+        ))?
+        .peel_to_tree()?;
+    let diff = repo.diff_tree_to_tree(Some(&remote_tree), Some(&head_tree), None)?;
+    let diff_stats = diff.stats()?;
+    let files_changed = diff_stats.files_changed();
+    if files_changed > 0 {
+        println!("{} files changed", files_changed.to_string().bold());
+        println!("{}", format!("+ {}", diff_stats.insertions()).green());
+        println!("{}", format!("- {}", diff_stats.deletions()).red());
+    }
     Ok(())
 }
 
