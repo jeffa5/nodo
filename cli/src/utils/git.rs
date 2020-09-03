@@ -52,6 +52,22 @@ impl Repo {
         Ok(self)
     }
 
+    pub fn remove_path(&mut self, path: &Path) -> Result<&mut Self> {
+        let root = self.repo.workdir().unwrap();
+        let rel_path = path.strip_prefix(root)?;
+
+        let status = self.repo.status_file(rel_path)?;
+        if status.is_empty() {
+            return Ok(self);
+        }
+
+        let mut index = self.repo.index()?;
+        index.remove_path(rel_path)?;
+        index.write()?;
+
+        Ok(self)
+    }
+
     pub fn add_all(&mut self) -> Result<&mut Self> {
         let mut index = self.repo.index()?;
         index.add_all(["*"].iter(), git2::IndexAddOption::DEFAULT, None)?;

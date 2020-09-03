@@ -26,12 +26,12 @@ impl Remove {
             if nodo_path.is_dir() {
                 if self.force || user::confirm("This is a directory, are you sure you want to remove it and all of its contents?")?   {
                     fs::remove_dir_all(nodo_path)?;
-                    repo.add_path(nodo_path)?;
+                    repo.remove_path(nodo_path)?;
                     println!("Removed {}", user::dir_name_string(nodo_path.display().to_string()));
                 }
             } else {
                 fs::remove_file(nodo_path)?;
-                repo.add_path(nodo_path)?;
+                repo.remove_path(nodo_path)?;
                 println!(
                     "Removed {}",
                     user::file_name_string(nodo_path.display().to_string())
