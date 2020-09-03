@@ -4,6 +4,7 @@ use crate::{
     utils::{target::Target, user},
 };
 use anyhow::{ensure, Result};
+use bat::PrettyPrinter;
 use colored::Colorize;
 use log::debug;
 use nodo_core::{Markdown, Parse};
@@ -23,6 +24,14 @@ pub struct Show {
     /// How many levels to show
     #[structopt(short, long, default_value = "1")]
     depth: i32,
+
+    /// List the available colour themes
+    #[structopt(long)]
+    list_themes: bool,
+
+    /// Theme to show the nodo with
+    #[structopt(long)]
+    theme: Option<String>,
 }
 
 impl Default for Show {
@@ -31,12 +40,22 @@ impl Default for Show {
             target: None,
             all: false,
             depth: 1,
+            list_themes: false,
+            theme: None,
         }
     }
 }
 
 impl Show {
     pub fn run(&self, g: &GlobalOpts) -> Result<()> {
+        if self.list_themes {
+            println!("Themes available:");
+            for theme in PrettyPrinter::new().themes() {
+                println!("{}", theme)
+            }
+            return Ok(());
+        }
+
         let target = g.root.join(
             self.target
                 .as_ref()
@@ -49,7 +68,7 @@ impl Show {
         if target.is_dir() {
             self.print_tree(&target, self.target.is_none(), self.depth)
         } else {
-            print_nodo(&target)
+            self.print_nodo(&target)
         }
     }
 
@@ -71,6 +90,17 @@ impl Show {
             }
         }
 
+        Ok(())
+    }
+
+    fn print_nodo(&self, path: &Path) -> Result<()> {
+        let mut pp = PrettyPrinter::new();
+        pp.input_file(path)
+            .language(path.extension().map_or("md", |s| s.to_str().unwrap()));
+        if let Some(theme) = self.theme.as_ref() {
+            pp.theme(theme);
+        }
+        pp.print().unwrap();
         Ok(())
     }
 }
@@ -183,12 +213,6 @@ fn print_nodo_summary(path: &Path) -> Result<()> {
             }
         )
     }
-    println!();
-    Ok(())
-}
-
-fn print_nodo(path: &Path) -> Result<()> {
-    std::io::copy(&mut File::open(path)?, &mut std::io::stdout())?;
     println!();
     Ok(())
 }
