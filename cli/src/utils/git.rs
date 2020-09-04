@@ -14,7 +14,7 @@ impl Repo {
                 if repo.path().starts_with(root) {
                     Ok(Self { repo })
                 } else {
-                    bail!("No repo found within the given root")
+                    Self::initialise(root)
                 }
             }
             Err(err) => match err.code() {
