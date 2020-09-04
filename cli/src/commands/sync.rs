@@ -47,7 +47,7 @@ impl Sync {
         let mut remote = repo.repo.find_remote("origin")?;
         let branch = "master";
 
-        println!("Pushing our changes up");
+        println!("Pushing changes up");
         push(&mut remote, branch)?;
 
         Ok(())
@@ -62,7 +62,10 @@ fn push(remote: &mut Remote, branch: &str) -> Result<()> {
         match status_message {
             None => println!(
                 "Pushed {}",
-                ref_name.strip_prefix("refs/heads/").unwrap_or(ref_name)
+                ref_name
+                    .strip_prefix("refs/heads/")
+                    .unwrap_or(ref_name)
+                    .bold()
             ),
             Some(s) => println!("Error pushing {}: {}", ref_name, s),
         }
