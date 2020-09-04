@@ -17,6 +17,14 @@ impl Sync {
     pub fn run(&self, g: &GlobalOpts) -> Result<()> {
         let mut repo = git::Repo::open(&g.root)?;
 
+        {
+            let mut remote = repo.repo.find_remote("origin")?;
+            let branch = "master";
+
+            println!("Pulling latest from remote");
+            pull(&repo.repo, &mut remote, branch)?;
+        }
+
         let statuses_clean = {
             let statuses = repo.repo.statuses(None)?;
             if !statuses.is_empty() {
@@ -38,9 +46,6 @@ impl Sync {
 
         let mut remote = repo.repo.find_remote("origin")?;
         let branch = "master";
-
-        println!("Pulling latest from remote");
-        pull(&repo.repo, &mut remote, branch)?;
 
         println!("Pushing our changes up");
         push(&mut remote, branch)?;
