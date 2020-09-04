@@ -60,7 +60,10 @@ fn push(remote: &mut Remote, branch: &str) -> Result<()> {
 
     cb.push_update_reference(|ref_name, status_message| {
         match status_message {
-            None => println!("Pushed {}", ref_name),
+            None => println!(
+                "Pushed {}",
+                ref_name.strip_prefix("refs/heads/").unwrap_or(ref_name)
+            ),
             Some(s) => println!("Error pushing {}: {}", ref_name, s),
         }
         Ok(())
