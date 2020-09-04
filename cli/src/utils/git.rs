@@ -1,6 +1,6 @@
 use crate::utils::user;
 use anyhow::{bail, ensure, Result};
-use git2::{ErrorCode, Repository};
+use git2::{ErrorCode, Repository, Status};
 use std::path::Path;
 
 pub struct Repo {
@@ -87,18 +87,41 @@ impl Repo {
 
         let changes = statuses
             .iter()
-            .map(|s| s.path().unwrap().to_string())
-            .collect::<Vec<_>>()
-            .join(" ");
+            .filter_map(|s| {
+                let status = s.status();
+                let path = s.path().unwrap().to_string();
+                if status.contains(Status::INDEX_NEW) {
+                    Some(format!("Add {}", path))
+                } else if status.intersects(
+                    Status::INDEX_MODIFIED | Status::INDEX_RENAMED | Status::INDEX_TYPECHANGE,
+                ) {
+                    Some(format!("Update {}", path))
+                } else if status.contains(Status::INDEX_DELETED) {
+                    Some(format!("Remove {}", path))
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>();
 
         let signature = self.repo.signature()?;
         let parent = head.peel_to_commit()?;
+
+        let msg = {
+            let items = if changes.len() == 1 { "item" } else { "items" };
+            format!(
+                "Change {} {}\n\n{}",
+                changes.len(),
+                items,
+                changes.join("\n")
+            )
+        };
 
         self.repo.commit(
             Some("HEAD"),
             &signature,
             &signature,
-            &format!("Updated {}", changes),
+            &msg,
             &tree,
             &[&parent],
         )?;
