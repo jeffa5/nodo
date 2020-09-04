@@ -69,15 +69,7 @@ fn push(remote: &mut Remote, branch: &str) -> Result<()> {
     let mut opts = git2::PushOptions::new();
     opts.remote_callbacks(cb);
     info!("Pushing changes to {}", remote.name().unwrap());
-    remote.push(
-        &[format!(
-            "refs/heads/{}:refs/remotes/{}/{}",
-            branch,
-            remote.name().unwrap_or("origin"),
-            branch
-        )],
-        Some(&mut opts),
-    )?;
+    remote.push(&[format!("refs/heads/{}", branch,)], Some(&mut opts))?;
 
     Ok(())
 }
