@@ -192,8 +192,10 @@ fn print_nodo_summary(path: &Path) -> Result<()> {
     let nodo = Markdown::parse(&buf)?;
     let task_count = nodo.count_tasks();
     print!(
-        "{}",
-        user::file_name_string(&path.file_name().unwrap().to_string_lossy())
+        "{}{}",
+        user::file_name_string(&path.file_stem().unwrap().to_string_lossy()),
+        path.extension()
+            .map_or_else(String::new, |e| format!(".{}", e.to_string_lossy()))
     );
     if task_count.total > 0 {
         let task_percentage = format!(
