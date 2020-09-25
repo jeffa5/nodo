@@ -15,8 +15,6 @@ pub struct Edit {
     target: Target,
 
     /// Create the target if it doesn't exist without a prompt
-    ///
-    /// This will prevent opening of the editor, designed for scripts
     #[structopt(short, long)]
     create: bool,
 }
@@ -30,10 +28,7 @@ impl Edit {
             self.create_nodo(nodo_path)?
         }
 
-        // create is designed for scripts so don't open an editor if specified
-        if !self.create {
-            edit_nodo(nodo_path, &g.root)?;
-        }
+        edit_nodo(nodo_path, &g.root)?;
 
         Ok(())
     }
