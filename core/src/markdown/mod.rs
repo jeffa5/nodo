@@ -291,8 +291,10 @@ fn parse_inlines(p: &mut Peekable<Parser>) -> Result<Vec<Inline>, ParseError> {
                 Tag::Emphasis => inlines.push(Inline::Emph(parse_inlines(p)?)),
                 Tag::Strong => inlines.push(Inline::Strong(parse_inlines(p)?)),
                 Tag::Strikethrough => inlines.push(Inline::Strikethrough(parse_inlines(p)?)),
-                Tag::Link(_type, s, l) => inlines.push(Inline::Link(s.to_string(), l.to_string())),
-                Tag::Image(_type, s, l) => {
+                Tag::Link(_type, l, s) => {
+                    inlines.push(Inline::Link(s.to_string() + &parse_text(p)?, l.to_string()))
+                }
+                Tag::Image(_type, l, s) => {
                     inlines.push(Inline::Image(s.to_string(), l.to_string()))
                 }
             },
@@ -536,6 +538,10 @@ some code {
 
 > quote
 > multi lines
+
+a link [here](test), another [more text this time](https://test.com)
+
+more text
 ";
         let nodo = Markdown::parse(md).unwrap();
 
