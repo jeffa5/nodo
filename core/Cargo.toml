@@ -10,7 +10,7 @@ keywords = ["notes", "todos", "tasks","management"]
 categories = []
 
 [dependencies]
-pulldown-cmark = "0.7.2"
+pulldown-cmark = "0.8.0"
 log = "0.4.11"
 thiserror = "1.0.20"
 
