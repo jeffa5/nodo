@@ -28,6 +28,8 @@ impl Edit {
             self.create_nodo(nodo_path)?
         }
 
+        ensure!(nodo_path.is_file(), "Nodo to edit must be a file");
+
         edit_nodo(nodo_path, &g.root)?;
 
         Ok(())
